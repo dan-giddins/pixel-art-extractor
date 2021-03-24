@@ -3,6 +3,7 @@ import numpy
 from matplotlib import pyplot as plot
 import math
 import scipy.cluster.hierarchy as hcluster
+from collections import Counter
 
 def printImg(img):
     plot.imshow(img)
@@ -70,35 +71,21 @@ def rotate(point, angle, origin = (0, 0)):
 # read source img
 img = cv2.imread('rotated_cat.png')
 
-# split into channels
-red = img[:,:,2] 
-green = img[:,:,1]
-blue = img[:,:,0]
+# edge detection
+edges = cv2.Canny(img,20,50,L2gradient = True)
 
 # HoughLines parms
 rho_res = 1
-theta_res = numpy.pi/(180*2)
-acc_thresh = 1000
+theta_res = numpy.pi/(180*2**5)
+acc_thresh = 2**7
 
-# line detectio
-red_lines = cv2.HoughLines(red,rho_res,theta_res,acc_thresh).reshape(-1,2).tolist()
-green_lines = cv2.HoughLines(green,rho_res,theta_res,acc_thresh).reshape(-1,2).tolist()
-blue_lines = cv2.HoughLines(blue,rho_res,theta_res,acc_thresh).reshape(-1,2).tolist()
+# line detection
+lines = cv2.HoughLines(edges,rho_res,theta_res,acc_thresh).reshape(-1,2).tolist()
 
-lines = []
-lines += red_lines
-lines += green_lines
-lines += blue_lines
+#print(lines)
 
-print(lines)
-
-angle_sum = 0
+# display lines
 for line in lines:
-    angle_sum += line[1] % (numpy.pi/2)
-angle_sum /= len(lines)
-print(angle_sum)
-
-for line in green_lines[:100]:
     rho = line[0]
     theta = line[1]
     a = numpy.cos(theta)
@@ -111,7 +98,39 @@ for line in green_lines[:100]:
     y2 = int(y0 - 1000*(a))
     cv2.line(img,(x1,y1),(x2,y2),(0,0,0),1)
 
-printImg(img)
+#printImg(img)
+
+# get average angle
+angle_sum = 0
+for line in lines:
+    angle_sum += line[1] % (numpy.pi/2)
+avg_angle = angle_sum / len(lines)
+print(avg_angle)
+
+# get an average distance between all the lines that are 1 'pixel' apart
+line_distances = []
+for l1 in lines:
+    for l2 in lines:
+        line_distances.append(abs(abs(l1[0]) - abs(l2[0])))
+valid_lengths = list(filter(lambda x : x[0] > 5 and x[0] < 20 and x[1] > 300, Counter(line_distances).most_common()))
+length_sum = 0
+count = 0
+for length in valid_lengths:
+    length_sum += length[0] * length[1]
+    count +=length[1]
+avg_distance = length_sum / count
+print(avg_distance)
+
+# get the average pixel offset
+offset_sum = 0
+for line in lines:
+    offset_sum += line[0] % avg_distance
+avg_offset = offset_sum / len(lines)
+print(avg_offset)
+
+# build image
+pixel_image = np.zeros([1000,1000,3],dtype=np.uint8)
+
 
 # # goodFeaturesToTrack parms
 # max_corners = 0
