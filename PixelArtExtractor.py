@@ -1,5 +1,5 @@
 import cv2
-import numpy as np
+import numpy
 from matplotlib import pyplot as plot
 import math
 import scipy.cluster.hierarchy as hcluster
@@ -75,50 +75,88 @@ red = img[:,:,2]
 green = img[:,:,1]
 blue = img[:,:,0]
 
-# goodFeaturesToTrack parms
-max_corners = 0
-quality_level = 0.01
-min_distance = 0
-block_size = 3
+# HoughLines parms
+rho_res = 1
+theta_res = numpy.pi/(180*2)
+acc_thresh = 1000
 
-# get features
-red_corners = convertToSet(cv2.goodFeaturesToTrack(red,max_corners,quality_level,min_distance,block_size))
-green_corners = convertToSet(cv2.goodFeaturesToTrack(green,max_corners,quality_level,min_distance,block_size))
-blue_corners = convertToSet(cv2.goodFeaturesToTrack(blue,max_corners,quality_level,min_distance,block_size))
+# line detectio
+red_lines = cv2.HoughLines(red,rho_res,theta_res,acc_thresh).reshape(-1,2).tolist()
+green_lines = cv2.HoughLines(green,rho_res,theta_res,acc_thresh).reshape(-1,2).tolist()
+blue_lines = cv2.HoughLines(blue,rho_res,theta_res,acc_thresh).reshape(-1,2).tolist()
 
-# union channel sets together
-corners = red_corners.union(green_corners).union(blue_corners)
+lines = []
+lines += red_lines
+lines += green_lines
+lines += blue_lines
 
-#showPointsOnImg(img, corners)
+print(lines)
 
-# clustering
-corner_array = convertToArray(corners)
-corner_clusters = hcluster.fclusterdata(corner_array, 3, criterion="distance")
+angle_sum = 0
+for line in lines:
+    angle_sum += line[1] % (numpy.pi/2)
+angle_sum /= len(lines)
+print(angle_sum)
 
-corner_groups = [[] for _ in range(corner_clusters.max())]
-for i in range(len(corner_array)):
-    corner_groups[corner_clusters[i]-1].append(corner_array[i])
+for line in green_lines[:100]:
+    rho = line[0]
+    theta = line[1]
+    a = numpy.cos(theta)
+    b = numpy.sin(theta)
+    x0 = a*rho
+    y0 = b*rho
+    x1 = int(x0 + 1000*(-b))
+    y1 = int(y0 + 1000*(a))
+    x2 = int(x0 - 1000*(-b))
+    y2 = int(y0 - 1000*(a))
+    cv2.line(img,(x1,y1),(x2,y2),(0,0,0),1)
 
-grouped_corners = set()
-for group in corner_groups:
-    x = 0
-    y = 0
-    for point in group:
-        x += point[0]
-        y += point[1]
-    x /= len(group)
-    y /= len(group)
-    grouped_corners.add((x, y))
+printImg(img)
 
-showPointsOnImg(img, grouped_corners)
+# # goodFeaturesToTrack parms
+# max_corners = 0
+# quality_level = 0.01
+# min_distance = 0
+# block_size = 3
 
-scale_factor = 6
-scaled_corners = set()
-for c in grouped_corners:
-    scaled_corners.add((c[0]*scale_factor, c[1]*scale_factor))
-h, w, c = img.shape
-scaled_img = cv2.resize(img, (w * scale_factor, h * scale_factor))
+# # get features
+# red_corners = convertToSet(cv2.goodFeaturesToTrack(red,max_corners,quality_level,min_distance,block_size))
+# green_corners = convertToSet(cv2.goodFeaturesToTrack(green,max_corners,quality_level,min_distance,block_size))
+# blue_corners = convertToSet(cv2.goodFeaturesToTrack(blue,max_corners,quality_level,min_distance,block_size))
 
-#showPoints(scaled_img, scaled_corners)
+# # union channel sets together
+# corners = red_corners.union(green_corners).union(blue_corners)
+
+# #showPointsOnImg(img, corners)
+
+# # clustering
+# corner_array = convertToArray(corners)
+# corner_clusters = hcluster.fclusterdata(corner_array, 3, criterion="distance")
+
+# corner_groups = [[] for _ in range(corner_clusters.max())]
+# for i in range(len(corner_array)):
+#     corner_groups[corner_clusters[i]-1].append(corner_array[i])
+
+# grouped_corners = set()
+# for group in corner_groups:
+#     x = 0
+#     y = 0
+#     for point in group:
+#         x += point[0]
+#         y += point[1]
+#     x /= len(group)
+#     y /= len(group)
+#     grouped_corners.add((x, y))
+
+# showPointsOnImg(img, grouped_corners)
+
+# scale_factor = 6
+# scaled_corners = set()
+# for c in grouped_corners:
+#     scaled_corners.add((c[0]*scale_factor, c[1]*scale_factor))
+# h, w, c = img.shape
+# scaled_img = cv2.resize(img, (w * scale_factor, h * scale_factor))
+
+# #showPoints(scaled_img, scaled_corners)
 
 
