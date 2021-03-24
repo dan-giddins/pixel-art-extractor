@@ -5,8 +5,8 @@ import math
 import scipy.cluster.hierarchy as hcluster
 from collections import Counter
 
-def printImg(img):
-    plot.imshow(img)
+def printImg(in_img):
+    plot.imshow(in_img)
     plot.show()
 
 def showFeatures(img, features):
@@ -69,8 +69,8 @@ def rotate(point, angle, origin = (0, 0)):
     return qx, qy
 
 # read source img
-img = cv2.imread('rotated_cat.png')
-
+img = cv2.imread('rotated_cat.png', cv2.COLOR_BGR2RGB)
+img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 # edge detection
 edges = cv2.Canny(img,20,50,L2gradient = True)
 
@@ -96,7 +96,7 @@ for line in lines:
     y1 = int(y0 + 1000*(a))
     x2 = int(x0 - 1000*(-b))
     y2 = int(y0 - 1000*(a))
-    cv2.line(img,(x1,y1),(x2,y2),(0,0,0),1)
+    #cv2.line(img,(x1,y1),(x2,y2),(0,0,0),1)
 
 #printImg(img)
 
@@ -129,8 +129,19 @@ avg_offset = offset_sum / len(lines)
 print(avg_offset)
 
 # build image
-pixel_image = np.zeros([1000,1000,3],dtype=np.uint8)
+pixel_width = 100
+pixel_height = 100
+pixel_image = numpy.zeros([pixel_width,pixel_height,3],dtype=numpy.uint8)
+h, w, c = img.shape
+for pixel_y in range(pixel_height):
+    for pixel_x in range(pixel_width):
+        x = int((avg_distance * pixel_x * numpy.sin(avg_angle)) + avg_offset + (avg_distance / 2))
+        y = int((avg_distance * pixel_y * numpy.cos((numpy.pi / 2) - avg_angle)) + avg_offset + (avg_distance / 2))
+        if (y < w and x < h):
+            #print(img[y, x])
+            pixel_image[pixel_y, pixel_x] = img[y, x]
 
+printImg(pixel_image)
 
 # # goodFeaturesToTrack parms
 # max_corners = 0
