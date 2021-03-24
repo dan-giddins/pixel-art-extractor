@@ -1,29 +1,41 @@
-import cv2
-import numpy
-from matplotlib import pyplot
+import cv2 as cv
+import numpy as np
+from matplotlib import pyplot as plot
 
 def printImg(img):
-    pyplot.imshow(img)
-    pyplot.show()
+    plot.imshow(img)
+    plot.show()
 
-img = cv2.imread('rotated_cat.png')
-img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+def showFeatures(img, features):
+    for feature in features:
+        cv.circle(img, (int(feature[0,0]), int(feature[0,1])), 8, (0,0,255))
+
+img = cv.imread('rotated_cat.png')
+img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
 
 red = img[:,:,0] 
 green = img[:,:,1]
 blue = img[:,:,2]
 
-block_size = 5
-k_size = 3
-k = 0.07
+max_corners = 0
+qualityLevel = 0.01
+minDistance = 0
 
-red_corners = cv2.cornerHarris(red,block_size,k_size,k)
-green_corners = cv2.cornerHarris(green,block_size,k_size,k)
-blue_corners = cv2.cornerHarris(blue,block_size,k_size,k)
 
-corners = numpy.add(numpy.add(red_corners, green_corners), blue_corners)
+red_corners = set(map(tuple, cv.goodFeaturesToTrack(red,max_corners,qualityLevel,minDistance).reshape(-1,2)))
+green_corners = set(map(tuple, cv.goodFeaturesToTrack(green,max_corners,qualityLevel,minDistance).reshape(-1,2)))
+blue_corners = set(map(tuple, cv.goodFeaturesToTrack(blue,max_corners,qualityLevel,minDistance).reshape(-1,2)))
 
-threshold = numpy.where(corners > 0.01*corners.max(), 1, 0)
+corners = red_corners.union(green_corners).union(blue_corners)
 
-printImg(threshold)
+h, w, c = img.shape
+corners_img = np.zeros((w, h))
+corners_array = np.array(list(corners))
+corners_img[corners_array] = 1
+
+printImg(corners_img)
+
+#threshold = np.where(corners > 0.01*corners.max(), 1, 0)
+
+
 
