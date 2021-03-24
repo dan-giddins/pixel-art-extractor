@@ -54,6 +54,19 @@ def showPointsOnImg(img, points):
         img[int(point[1]), int(point[0])] = [0, 0, 0]
     printImg(img)
 
+def rotate(point, angle, origin = (0, 0)):
+    """
+    Rotate a point counterclockwise by a given angle around a given origin.
+
+    The angle should be given in radians.
+    """
+    ox, oy = origin
+    px, py = point
+
+    qx = ox + math.cos(angle) * (px - ox) - math.sin(angle) * (py - oy)
+    qy = oy + math.sin(angle) * (px - ox) + math.cos(angle) * (py - oy)
+    return qx, qy
+
 # read source img
 img = cv2.imread('rotated_cat.png')
 
@@ -97,7 +110,7 @@ for group in corner_groups:
     y /= len(group)
     grouped_corners.add((x, y))
 
-#showPointsOnImg(img, grouped_corners)
+showPointsOnImg(img, grouped_corners)
 
 scale_factor = 6
 scaled_corners = set()
