@@ -129,15 +129,15 @@ avg_offset = offset_sum / len(lines)
 print(avg_offset)
 
 # build image
-pixel_width = 100
-pixel_height = 100
+pixel_width = 200
+pixel_height = 200
 pixel_image = numpy.zeros([pixel_width,pixel_height,3],dtype=numpy.uint8)
 h, w, c = img.shape
 for pixel_y in range(pixel_height):
     for pixel_x in range(pixel_width):
-        x = int((avg_distance * pixel_x * numpy.sin(avg_angle)) + avg_offset + (avg_distance / 2))
-        y = int((avg_distance * pixel_y * numpy.cos((numpy.pi / 2) - avg_angle)) + avg_offset + (avg_distance / 2))
-        if (y < w and x < h):
+        x = int((avg_distance * (pixel_x - pixel_width/2) * numpy.sin(avg_angle)) + avg_offset + (avg_distance / 2))
+        y = int((avg_distance * (pixel_y - pixel_height/2) * numpy.cos((numpy.pi / 2) - avg_angle)) + avg_offset + (avg_distance / 2))
+        if (x < w and x >= 0 and y < h and y >= 0):
             #print(img[y, x])
             pixel_image[pixel_y, pixel_x] = img[y, x]
 
