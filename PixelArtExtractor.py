@@ -1,14 +1,16 @@
-#%%
 import cv2
 import numpy
 from matplotlib import pyplot
 
-img = cv2.imread('rotated_cat.png',0)
-edges = cv2.Canny(img,100,200)
+def printImg(img):
+    pyplot.imshow(img)
+    pyplot.show()
 
-pyplot.subplot(121),pyplot.imshow(img,cmap = 'gray')
-pyplot.title('Original Image'), pyplot.xticks([]), pyplot.yticks([])
-pyplot.subplot(122),pyplot.imshow(edges,cmap = 'gray')
-pyplot.title('Edge Image'), pyplot.xticks([]), pyplot.yticks([])
+img = cv2.imread('rotated_cat.png')
+img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-# %%
+edges = cv2.Canny(img,20,50,L2gradient = True)
+
+corners = cv2.cornerHarris(edges, 3, 3, 0.01)
+
+printImg(corners)
