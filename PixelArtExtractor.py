@@ -75,9 +75,9 @@ img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 edges = cv2.Canny(img,20,50,L2gradient = True)
 
 # HoughLines parms
-rho_res = 2**1
+rho_res = 2**-1
 theta_res = numpy.pi/(180*2**6)
-acc_thresh = 2**8
+acc_thresh = 2**7
 
 # line detection
 lines = cv2.HoughLines(edges,rho_res,theta_res,acc_thresh).reshape(-1,2).tolist()
@@ -112,7 +112,8 @@ line_distances = []
 for l1 in lines:
     for l2 in lines:
         line_distances.append(abs(abs(l1[0]) - abs(l2[0])))
-valid_lengths = list(filter(lambda x : x[0] > 5 and x[0] < 20 and x[1] > 300, Counter(line_distances).most_common()))
+sorted_line_distances = Counter(line_distances).most_common()
+valid_lengths = list(filter(lambda x : x[0] > 5 and x[0] < 20, sorted_line_distances))
 length_sum = 0
 count = 0
 for length in valid_lengths:
@@ -138,11 +139,13 @@ cos = numpy.cos(avg_angle - numpy.pi/2)
 sin = numpy.sin(avg_angle - numpy.pi/2)
 pixel_offset = avg_offset / avg_distance
 # 0.5 as we want center of 'pixel' from original image
-for pixel_y in numpy.arange((0.5 - pixel_height) + pixel_offset, pixel_height):
-    for pixel_x in numpy.arange((0.5 - pixel_width) + pixel_offset, pixel_width):
+for pixel_y in range(pixel_height):
+    for pixel_x in range(pixel_width):
+        pixel_x_unit = pixel_x + 0.5 + pixel_offset - pixel_width/2
+        pixel_y_unit = pixel_y + 0.5 + pixel_offset - pixel_height/2
         # get unit cords
-        x_unit = (pixel_x * cos) - (pixel_y * sin)
-        y_unit = (pixel_x * sin) + (pixel_y * cos)
+        x_unit = (pixel_x_unit * cos) - (pixel_y_unit * sin)
+        y_unit = (pixel_x_unit * sin) + (pixel_y_unit * cos)
         # scale up
         x = int(avg_distance * x_unit)
         y = int(avg_distance * y_unit)
