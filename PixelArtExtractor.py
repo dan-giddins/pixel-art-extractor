@@ -69,15 +69,15 @@ def rotate(point, angle, origin = (0, 0)):
     return qx, qy
 
 # read source img
-img = cv2.imread('rotated_cat.png', cv2.COLOR_BGR2RGB)
+img = cv2.imread('rotated_cat.png')
 img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 # edge detection
 edges = cv2.Canny(img,20,50,L2gradient = True)
 
 # HoughLines parms
-rho_res = 2**-1
+rho_res = 1/2
 theta_res = numpy.pi/(180*2**6)
-acc_thresh = 2**7
+acc_thresh = 100
 
 # line detection
 lines = cv2.HoughLines(edges,rho_res,theta_res,acc_thresh).reshape(-1,2).tolist()
@@ -96,7 +96,7 @@ for line in lines:
     y1 = int(y0 + 1000*(a))
     x2 = int(x0 - 1000*(-b))
     y2 = int(y0 - 1000*(a))
-    cv2.line(img,(x1,y1),(x2,y2),(0,0,0),1)
+    #cv2.line(img,(x1,y1),(x2,y2),(0,0,0),1)
 
 #printImg(img)
 
@@ -109,11 +109,13 @@ print(avg_angle)
 
 # get an average distance between all the lines that are 1 'pixel' apart
 line_distances = []
+print(len(lines))
 for l1 in lines:
     for l2 in lines:
         line_distances.append(abs(abs(l1[0]) - abs(l2[0])))
 sorted_line_distances = Counter(line_distances).most_common()
-valid_lengths = list(filter(lambda x : x[0] > 5 and x[0] < 20, sorted_line_distances))
+valid_lengths = list(filter(lambda x : x[0] > 5 and x[0] < 20 and x[1] > len(lines)/2, sorted_line_distances))
+sorted_valid_lenghts =  Counter(valid_lengths).most_common()
 length_sum = 0
 count = 0
 for length in valid_lengths:
@@ -139,7 +141,7 @@ print(avg_offset_y)
 pixel_cords = []
 pixel_width = 200
 pixel_height = 200
-pixel_image = numpy.zeros([pixel_width,pixel_height,3],dtype=numpy.uint8)
+pixel_image = numpy.full((pixel_width, pixel_height, 4), [0, 0, 0, 0])
 h, w, c = img.shape
 cos = numpy.cos(avg_angle - numpy.pi/2)
 sin = numpy.sin(avg_angle - numpy.pi/2)
@@ -158,12 +160,15 @@ for pixel_y in range(pixel_height):
         y = int(avg_distance * y_unit)
         if (x < w and x >= 0 and y < h and y >= 0):
             pixel_cords.append((x, y))
-            #pixel_image[pixel_y, pixel_x] = img[y, x]
+            pixel = [img[y, x][0], img[y, x][1], img[y, x][2], 255]
+            #print(pixel)
+            pixel_image[pixel_y, pixel_x] = pixel
 
-showPointsOnImg(img, pixel_cords)
+#showPointsOnImg(img, pixel_cords)
 
-#printImg(pixel_image)
-
+printImg(pixel_image)
+pixel_image = cv2.cvtColor(pixel_image, cv2.COLOR_RGBA2BGRA)
+#print(cv2.imwrite('C:\\Users\\Proto\\OneDrive\\Pictures\\pixel_cat\\pixel_cat_fixed.png', pixel_image))
 # # goodFeaturesToTrack parms
 # max_corners = 0
 # quality_level = 0.01
