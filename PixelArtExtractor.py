@@ -75,9 +75,9 @@ img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 edges = cv2.Canny(img,20,50,L2gradient = True)
 
 # HoughLines parms
-rho_res = 1
-theta_res = numpy.pi/(180*2**5)
-acc_thresh = 2**7
+rho_res = 2**1
+theta_res = numpy.pi/(180*2**6)
+acc_thresh = 2**8
 
 # line detection
 lines = cv2.HoughLines(edges,rho_res,theta_res,acc_thresh).reshape(-1,2).tolist()
@@ -96,9 +96,9 @@ for line in lines:
     y1 = int(y0 + 1000*(a))
     x2 = int(x0 - 1000*(-b))
     y2 = int(y0 - 1000*(a))
-    #cv2.line(img,(x1,y1),(x2,y2),(0,0,0),1)
+    cv2.line(img,(x1,y1),(x2,y2),(0,0,0),1)
 
-#printImg(img)
+printImg(img)
 
 # get average angle
 angle_sum = 0
@@ -130,21 +130,22 @@ print(avg_offset)
 
 # get pixel cords
 pixel_cords = []
-pixel_width = 200
-pixel_height = 200
+pixel_width = 100
+pixel_height = 100
 pixel_image = numpy.zeros([pixel_width,pixel_height,3],dtype=numpy.uint8)
 h, w, c = img.shape
 cos = numpy.cos(avg_angle - numpy.pi/2)
 sin = numpy.sin(avg_angle - numpy.pi/2)
+pixel_offset = avg_offset / avg_distance
 # 0.5 as we want center of 'pixel' from original image
-for pixel_y in numpy.arange(0.5, pixel_height):
-    for pixel_x in numpy.arange(0.5, pixel_width):
+for pixel_y in numpy.arange((0.5 - pixel_height) + pixel_offset, pixel_height):
+    for pixel_x in numpy.arange((0.5 - pixel_width) + pixel_offset, pixel_width):
         # get unit cords
         x_unit = (pixel_x * cos) - (pixel_y * sin)
         y_unit = (pixel_x * sin) + (pixel_y * cos)
         # scale up
-        x = int((avg_distance * x_unit) + avg_offset)
-        y = int((avg_distance * y_unit) + avg_offset)
+        x = int(avg_distance * x_unit)
+        y = int(avg_distance * y_unit)
         if (x < w and x >= 0 and y < h and y >= 0):
             pixel_cords.append((x, y))
             #pixel_image[pixel_y, pixel_x] = img[y, x]
