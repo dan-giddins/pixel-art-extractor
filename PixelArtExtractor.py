@@ -134,13 +134,14 @@ pixel_width = 200
 pixel_height = 200
 pixel_image = numpy.zeros([pixel_width,pixel_height,3],dtype=numpy.uint8)
 h, w, c = img.shape
-cos = numpy.cos(avg_angle)
-sin = numpy.sin(avg_angle)
-for pixel_y in range(0.5, pixel_height):
-    for pixel_x in range(0.5, pixel_width):
+cos = numpy.cos(avg_angle - numpy.pi/2)
+sin = numpy.sin(avg_angle - numpy.pi/2)
+# 0.5 as we want center of 'pixel' from original image
+for pixel_y in numpy.arange(0.5, pixel_height):
+    for pixel_x in numpy.arange(0.5, pixel_width):
         # get unit cords
         x_unit = (pixel_x * cos) - (pixel_y * sin)
-        y_unit = (pixel_x * sin) - (pixel_y * cos)
+        y_unit = (pixel_x * sin) + (pixel_y * cos)
         # scale up
         x = int((avg_distance * x_unit) + avg_offset)
         y = int((avg_distance * y_unit) + avg_offset)
