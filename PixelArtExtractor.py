@@ -69,15 +69,15 @@ def rotate(point, angle, origin = (0, 0)):
     return qx, qy
 
 # read source img
-img = cv2.imread('rotated_cat.png', cv2.COLOR_BGR2RGB)
+img = cv2.imread('rotated_cat.png')
 img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 # edge detection
 edges = cv2.Canny(img,20,50,L2gradient = True)
 
 # HoughLines parms
-rho_res = 1
-theta_res = numpy.pi/(180*2**5)
-acc_thresh = 2**7
+rho_res = 1/2
+theta_res = numpy.pi/(180*2**6)
+acc_thresh = 100
 
 # line detection
 lines = cv2.HoughLines(edges,rho_res,theta_res,acc_thresh).reshape(-1,2).tolist()
@@ -109,10 +109,13 @@ print(avg_angle)
 
 # get an average distance between all the lines that are 1 'pixel' apart
 line_distances = []
+print(len(lines))
 for l1 in lines:
     for l2 in lines:
         line_distances.append(abs(abs(l1[0]) - abs(l2[0])))
-valid_lengths = list(filter(lambda x : x[0] > 5 and x[0] < 20 and x[1] > 300, Counter(line_distances).most_common()))
+sorted_line_distances = Counter(line_distances).most_common()
+valid_lengths = list(filter(lambda x : x[0] > 5 and x[0] < 20 and x[1] > len(lines)/2, sorted_line_distances))
+sorted_valid_lenghts =  Counter(valid_lengths).most_common()
 length_sum = 0
 count = 0
 for length in valid_lengths:
@@ -121,28 +124,51 @@ for length in valid_lengths:
 avg_distance = length_sum / count
 print(avg_distance)
 
-# get the average pixel offset
-offset_sum = 0
+# get the average pixel offset for x and y
+offset_sum_x = 0
+offset_sum_y = 0
 for line in lines:
-    offset_sum += line[0] % avg_distance
-avg_offset = offset_sum / len(lines)
-print(avg_offset)
+    if line[1] < numpy.pi:
+        offset_sum_y += line[0] % avg_distance
+    else:
+         offset_sum_x += line[0] % avg_distance
+avg_offset_x = offset_sum_x / len(lines)
+avg_offset_y = offset_sum_y / len(lines)
+print(avg_offset_x)
+print(avg_offset_y)
 
-# build image
-pixel_width = 100
-pixel_height = 100
-pixel_image = numpy.zeros([pixel_width,pixel_height,3],dtype=numpy.uint8)
+# get pixel cords
+pixel_cords = []
+pixel_width = 200
+pixel_height = 200
+pixel_image = numpy.full((pixel_width, pixel_height, 4), [0, 0, 0, 0])
 h, w, c = img.shape
+cos = numpy.cos(avg_angle - numpy.pi/2)
+sin = numpy.sin(avg_angle - numpy.pi/2)
+pixel_offset_x = avg_offset_x / avg_distance
+pixel_offset_y = avg_offset_y / avg_distance
+# 0.5 as we want center of 'pixel' from original image
 for pixel_y in range(pixel_height):
     for pixel_x in range(pixel_width):
-        x = int((avg_distance * pixel_x * numpy.sin(avg_angle)) + avg_offset + (avg_distance / 2))
-        y = int((avg_distance * pixel_y * numpy.cos((numpy.pi / 2) - avg_angle)) + avg_offset + (avg_distance / 2))
-        if (y < w and x < h):
-            #print(img[y, x])
-            pixel_image[pixel_y, pixel_x] = img[y, x]
+        pixel_x_unit = pixel_x + 0.5 + pixel_offset_x - pixel_width/2
+        pixel_y_unit = pixel_y + 0.5 + pixel_offset_y - pixel_height/2
+        # get unit cords
+        x_unit = (pixel_x_unit * cos) - (pixel_y_unit * sin)
+        y_unit = (pixel_x_unit * sin) + (pixel_y_unit * cos)
+        # scale up
+        x = int(avg_distance * x_unit)
+        y = int(avg_distance * y_unit)
+        if (x < w and x >= 0 and y < h and y >= 0):
+            pixel_cords.append((x, y))
+            pixel = [img[y, x][0], img[y, x][1], img[y, x][2], 255]
+            #print(pixel)
+            pixel_image[pixel_y, pixel_x] = pixel
+
+#showPointsOnImg(img, pixel_cords)
 
 printImg(pixel_image)
-
+pixel_image = cv2.cvtColor(pixel_image, cv2.COLOR_RGBA2BGRA)
+#print(cv2.imwrite('C:\\Users\\Proto\\OneDrive\\Pictures\\pixel_cat\\pixel_cat_fixed.png', pixel_image))
 # # goodFeaturesToTrack parms
 # max_corners = 0
 # quality_level = 0.01
