@@ -128,20 +128,29 @@ for line in lines:
 avg_offset = offset_sum / len(lines)
 print(avg_offset)
 
-# build image
+# get pixel cords
+pixel_cords = []
 pixel_width = 200
 pixel_height = 200
 pixel_image = numpy.zeros([pixel_width,pixel_height,3],dtype=numpy.uint8)
 h, w, c = img.shape
-for pixel_y in range(pixel_height):
-    for pixel_x in range(pixel_width):
-        x = int((avg_distance * (pixel_x - pixel_width/2) * numpy.sin(avg_angle)) + avg_offset + (avg_distance / 2))
-        y = int((avg_distance * (pixel_y - pixel_height/2) * numpy.cos((numpy.pi / 2) - avg_angle)) + avg_offset + (avg_distance / 2))
+cos = numpy.cos(avg_angle)
+sin = numpy.sin(avg_angle)
+for pixel_y in range(0.5, pixel_height):
+    for pixel_x in range(0.5, pixel_width):
+        # get unit cords
+        x_unit = (pixel_x * cos) - (pixel_y * sin)
+        y_unit = (pixel_x * sin) - (pixel_y * cos)
+        # scale up
+        x = int((avg_distance * x_unit) + avg_offset)
+        y = int((avg_distance * y_unit) + avg_offset)
         if (x < w and x >= 0 and y < h and y >= 0):
-            #print(img[y, x])
-            pixel_image[pixel_y, pixel_x] = img[y, x]
+            pixel_cords.append((x, y))
+            #pixel_image[pixel_y, pixel_x] = img[y, x]
 
-printImg(pixel_image)
+showPointsOnImg(img, pixel_cords)
+
+#printImg(pixel_image)
 
 # # goodFeaturesToTrack parms
 # max_corners = 0
