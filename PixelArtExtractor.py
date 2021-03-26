@@ -98,7 +98,7 @@ for line in lines:
     y2 = int(y0 - 1000*(a))
     cv2.line(img,(x1,y1),(x2,y2),(0,0,0),1)
 
-printImg(img)
+#printImg(img)
 
 # get average angle
 angle_sum = 0
@@ -122,27 +122,34 @@ for length in valid_lengths:
 avg_distance = length_sum / count
 print(avg_distance)
 
-# get the average pixel offset
-offset_sum = 0
+# get the average pixel offset for x and y
+offset_sum_x = 0
+offset_sum_y = 0
 for line in lines:
-    offset_sum += line[0] % avg_distance
-avg_offset = offset_sum / len(lines)
-print(avg_offset)
+    if line[1] < numpy.pi:
+        offset_sum_y += line[0] % avg_distance
+    else:
+         offset_sum_x += line[0] % avg_distance
+avg_offset_x = offset_sum_x / len(lines)
+avg_offset_y = offset_sum_y / len(lines)
+print(avg_offset_x)
+print(avg_offset_y)
 
 # get pixel cords
 pixel_cords = []
-pixel_width = 100
-pixel_height = 100
+pixel_width = 200
+pixel_height = 200
 pixel_image = numpy.zeros([pixel_width,pixel_height,3],dtype=numpy.uint8)
 h, w, c = img.shape
 cos = numpy.cos(avg_angle - numpy.pi/2)
 sin = numpy.sin(avg_angle - numpy.pi/2)
-pixel_offset = avg_offset / avg_distance
+pixel_offset_x = avg_offset_x / avg_distance
+pixel_offset_y = avg_offset_y / avg_distance
 # 0.5 as we want center of 'pixel' from original image
 for pixel_y in range(pixel_height):
     for pixel_x in range(pixel_width):
-        pixel_x_unit = pixel_x + 0.5 + pixel_offset - pixel_width/2
-        pixel_y_unit = pixel_y + 0.5 + pixel_offset - pixel_height/2
+        pixel_x_unit = pixel_x + 0.5 + pixel_offset_x - pixel_width/2
+        pixel_y_unit = pixel_y + 0.5 + pixel_offset_y - pixel_height/2
         # get unit cords
         x_unit = (pixel_x_unit * cos) - (pixel_y_unit * sin)
         y_unit = (pixel_x_unit * sin) + (pixel_y_unit * cos)
