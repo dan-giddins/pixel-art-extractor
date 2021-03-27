@@ -184,14 +184,16 @@ for y in range(pixel_height):
             if y > bottom:
                 bottom = y
 pixel_image_crop = numpy.full((bottom - top + 3, right - left + 3, 3), [255, 255, 255])
-
 h, w, c = pixel_image_crop.shape
 for y in range(h):
     for x in range(w):
         pixel_image_crop[y, x] = pixel_image[y + top - 1, x + left - 1]
 
+# flood image to remove background
+mask = numpy.zeros((h+2, w+2), numpy.uint8)
+cv2.floodFill(pixel_image_crop, mask, (0,0), [0, 0, 0], loDiff=1000, upDiff=1000)
+#printImg(mask)
 printImg(pixel_image_crop)
-# flood image to remove background (assume white)
 
 #pixel_image = cv2.cvtColor(pixel_image, cv2.COLOR_RGBA2BGRA)
 #print(cv2.imwrite('C:\\Users\\Proto\\OneDrive\\Pictures\\pixel_cat\\pixel_cat_fixed.png', pixel_image))
