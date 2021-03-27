@@ -1,13 +1,14 @@
 import cv2
 import numpy
-from matplotlib import pyplot as plot
+from matplotlib import pyplot
 import math
-import scipy.cluster.hierarchy as hcluster
+from scipy.cluster import hierarchy
 from collections import Counter
+import sys
 
 def printImg(in_img):
-    plot.imshow(in_img)
-    plot.show()
+    pyplot.imshow(in_img)
+    pyplot.show()
 
 def showFeatures(img, features):
     for feature in features:
@@ -67,6 +68,38 @@ def rotate(point, angle, origin = (0, 0)):
     qx = ox + math.cos(angle) * (px - ox) - math.sin(angle) * (py - oy)
     qy = oy + math.sin(angle) * (px - ox) + math.cos(angle) * (py - oy)
     return qx, qy
+
+def findBoarder(img, x, y, boarder_pixels, checked_pixels):
+    if (x, y) in checked_pixels:
+        return
+    else:
+        checked_pixels.add((x, y))
+    print((x, y))
+    h, w, c = img.shape
+    # up
+    if (y > 0):
+        if (img[y - 1, x][3]):
+            boarder_pixels.add((x, y))
+        else:
+            findBoarder(img, x, y - 1, boarder_pixels, checked_pixels)
+    # right
+    if (x < w - 1):
+        if (img[y, x + 1][3]):
+            boarder_pixels.add((x, y))
+        else:
+            findBoarder(img, x + 1, y, boarder_pixels, checked_pixels)
+    # down
+    if (y < h - 1):
+        if (img[y + 1, x][3]):
+            boarder_pixels.add((x, y))
+        else:
+            findBoarder(img, x, y+1, boarder_pixels, checked_pixels)
+    # left
+    if (x > 0):
+        if (img[y, x - 1][3]):
+            boarder_pixels.add((x, y))
+        else:
+            findBoarder(img, x - 1, y, boarder_pixels, checked_pixels)
 
 # read source img
 img = cv2.imread('rotated_cat.png')
@@ -196,25 +229,38 @@ diff = 10
 diff_array = [diff, diff, diff]
 cv2.floodFill(pixel_image_crop, mask, (0,0), [0, 0, 0], loDiff=diff_array , upDiff=diff_array)
 
-# scale up
-scale = 16
-trans_h = crop_h * scale
-trans_w = crop_w * scale
-pixel_image_transparent = numpy.full((trans_h, trans_w, 4), [0, 0, 0, 0])
+# make background transparent
+pixel_image_transparent = numpy.full((crop_h, crop_w, 4), [0, 0, 0, 0])
 for y in range(crop_h):
     for x in range(crop_w):
         if not mask[y+1, x+1]:
             pixel = pixel_image_crop[y, x]
-            for y_offset in range(y * scale, (y + 1) * scale):
-                for x_offset in range(x * scale, (x + 1) * scale):
-                    # swap R and B colour channels
-                    pixel_image_transparent[y_offset, x_offset] = [pixel[0], pixel[1], pixel[2], 255]
+            pixel_image_transparent[y, x] = [pixel[0], pixel[1], pixel[2], 255]
+
+# create boarder
+boarder_pixels = set()
+checked_pixels = set()
+sys.setrecursionlimit(10000)
+findBoarder(pixel_image_transparent, 0, 0, boarder_pixels, checked_pixels)
+for boarder_pixel in boarder_pixels:
+    pixel_image_transparent[boarder_pixel[1], boarder_pixel[0]] = [255, 255, 255, 255]
+
+# scale up
+scale = 16
+scaled_h = crop_h * scale
+scaled_w = crop_w * scale
+pixel_image_scaled = numpy.full((scaled_h, scaled_w, 4), [0, 0, 0, 0])
+for y in range(crop_h):
+    for x in range(crop_w):
+        for y_offset in range(y * scale, (y + 1) * scale):
+            for x_offset in range(x * scale, (x + 1) * scale):
+                pixel_image_scaled[y_offset, x_offset] = pixel_image_transparent[y, x]
 
 #printImg(mask)
-#printImg(pixel_image_transparent)
+#printImg(pixel_image_scaled)
 
 # add one white pixel boarder 
-print(cv2.imwrite('C:\\Users\\Proto\\OneDrive\\Pictures\\pixel_cat\\pixel_cat_fixed_trans_scaled.png', pixel_image_transparent))
+print(cv2.imwrite('C:\\Users\\Proto\\OneDrive\\Pictures\\pixel_cat\\pixel_cat_fixed_trans_scaled_boarder.png', pixel_image_scaled))
 
 # # goodFeaturesToTrack parms
 # max_corners = 0
