@@ -1,13 +1,14 @@
 import cv2
 import numpy
-from matplotlib import pyplot as plot
+from matplotlib import pyplot
 import math
-import scipy.cluster.hierarchy as hcluster
+from scipy.cluster import hierarchy
 from collections import Counter
+import sys
 
 def printImg(in_img):
-    plot.imshow(in_img)
-    plot.show()
+    pyplot.imshow(in_img)
+    pyplot.show()
 
 def showFeatures(img, features):
     for feature in features:
@@ -68,6 +69,61 @@ def rotate(point, angle, origin = (0, 0)):
     qy = oy + math.sin(angle) * (px - ox) + math.cos(angle) * (py - oy)
     return qx, qy
 
+def findBoarder(img, x, y, boarder_pixels, checked_pixels):
+    if (x, y) in checked_pixels:
+        return
+    else:
+        checked_pixels.add((x, y))
+    h, w, c = img.shape
+    # up
+    if (y > 0):
+        if (img[y - 1, x][3]):
+            boarder_pixels.add((x, y))
+        else:
+            findBoarder(img, x, y - 1, boarder_pixels, checked_pixels)
+            # up right
+            if (x < w - 1):
+                if (img[y - 1, x + 1][3]):
+                    boarder_pixels.add((x, y))
+                else:
+                    findBoarder(img, x + 1, y - 1, boarder_pixels, checked_pixels)
+    # right
+    if (x < w - 1):
+        if (img[y, x + 1][3]):
+            boarder_pixels.add((x, y))
+        else:
+            findBoarder(img, x + 1, y, boarder_pixels, checked_pixels)
+            # right down
+            if (y < h - 1):
+                if (img[y + 1, x + 1][3]):
+                    boarder_pixels.add((x, y))
+                else:
+                    findBoarder(img, x + 1, y + 1, boarder_pixels, checked_pixels)
+    # down
+    if (y < h - 1):
+        if (img[y + 1, x][3]):
+            boarder_pixels.add((x, y))
+        else:
+            findBoarder(img, x, y+1, boarder_pixels, checked_pixels)
+            # down left
+            if (x > 0):
+                if (img[y + 1, x - 1][3]):
+                    boarder_pixels.add((x, y))
+                else:
+                    findBoarder(img, x - 1, y + 1, boarder_pixels, checked_pixels)
+    # left
+    if (x > 0):
+        if (img[y, x - 1][3]):
+            boarder_pixels.add((x, y))
+        else:
+            findBoarder(img, x - 1, y, boarder_pixels, checked_pixels)
+            if (y > 0):
+                if (img[y - 1, x - 1][3]):
+                    boarder_pixels.add((x, y))
+                else:
+                    findBoarder(img, x - 1, y - 1, boarder_pixels, checked_pixels)
+    
+
 # read source img
 img = cv2.imread('rotated_cat.png')
 #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -81,8 +137,6 @@ acc_thresh = 100
 
 # line detection
 lines = cv2.HoughLines(edges,rho_res,theta_res,acc_thresh).reshape(-1,2).tolist()
-
-#print(lines)
 
 # display lines
 for line in lines:
@@ -98,18 +152,14 @@ for line in lines:
     y2 = int(y0 - 1000*(a))
     #cv2.line(img,(x1,y1),(x2,y2),(0,0,0),1)
 
-#printImg(img)
-
 # get average angle
 angle_sum = 0
 for line in lines:
     angle_sum += line[1] % (numpy.pi/2)
 avg_angle = angle_sum / len(lines)
-print(avg_angle)
 
 # get an average distance between all the lines that are 1 'pixel' apart
 line_distances = []
-print(len(lines))
 for l1 in lines:
     for l2 in lines:
         line_distances.append(abs(abs(l1[0]) - abs(l2[0])))
@@ -122,7 +172,6 @@ for length in valid_lengths:
     length_sum += length[0] * length[1]
     count +=length[1]
 avg_distance = length_sum / count
-print(avg_distance)
 
 # get the average pixel offset for x and y
 offset_sum_x = 0
@@ -134,8 +183,6 @@ for line in lines:
          offset_sum_x += line[0] % avg_distance
 avg_offset_x = offset_sum_x / len(lines)
 avg_offset_y = offset_sum_y / len(lines)
-print(avg_offset_x)
-print(avg_offset_y)
 
 # get pixel cords
 pixel_cords = []
@@ -160,12 +207,9 @@ for pixel_y in range(pixel_height):
         y = int(avg_distance * y_unit)
         if (x < w and x >= 0 and y < h and y >= 0):
             pixel_cords.append((x, y))
-            #print(pixel)
             pixel_image[pixel_y, pixel_x] = img[y, x]
 
 #showPointsOnImg(img, pixel_cords)
-
-#printImg(pixel_image)
 
 # crop to 1 pixel more that image (assume background is white)
 top = pixel_height
@@ -196,25 +240,35 @@ diff = 10
 diff_array = [diff, diff, diff]
 cv2.floodFill(pixel_image_crop, mask, (0,0), [0, 0, 0], loDiff=diff_array , upDiff=diff_array)
 
-# scale up
-scale = 16
-trans_h = crop_h * scale
-trans_w = crop_w * scale
-pixel_image_transparent = numpy.full((trans_h, trans_w, 4), [0, 0, 0, 0])
+# make background transparent
+pixel_image_transparent = numpy.full((crop_h, crop_w, 4), [0, 0, 0, 0])
 for y in range(crop_h):
     for x in range(crop_w):
         if not mask[y+1, x+1]:
             pixel = pixel_image_crop[y, x]
-            for y_offset in range(y * scale, (y + 1) * scale):
-                for x_offset in range(x * scale, (x + 1) * scale):
-                    # swap R and B colour channels
-                    pixel_image_transparent[y_offset, x_offset] = [pixel[0], pixel[1], pixel[2], 255]
+            pixel_image_transparent[y, x] = [pixel[0], pixel[1], pixel[2], 255]
 
-#printImg(mask)
-#printImg(pixel_image_transparent)
+# create boarder
+boarder_pixels = set()
+checked_pixels = set()
+sys.setrecursionlimit(10000)
+findBoarder(pixel_image_transparent, 0, 0, boarder_pixels, checked_pixels)
+for boarder_pixel in boarder_pixels:
+    pixel_image_transparent[boarder_pixel[1], boarder_pixel[0]] = [255, 255, 255, 255]
+
+# scale up
+scale = 16
+scaled_h = crop_h * scale
+scaled_w = crop_w * scale
+pixel_image_scaled = numpy.full((scaled_h, scaled_w, 4), [0, 0, 0, 0])
+for y in range(crop_h):
+    for x in range(crop_w):
+        for y_offset in range(y * scale, (y + 1) * scale):
+            for x_offset in range(x * scale, (x + 1) * scale):
+                pixel_image_scaled[y_offset, x_offset] = pixel_image_transparent[y, x]
 
 # add one white pixel boarder 
-print(cv2.imwrite('C:\\Users\\Proto\\OneDrive\\Pictures\\pixel_cat\\pixel_cat_fixed_trans_scaled.png', pixel_image_transparent))
+print(cv2.imwrite('C:\\Users\\Proto\\OneDrive\\Pictures\\pixel_cat\\pixel_cat_fixed_trans_scaled_boarder_thicker.png', pixel_image_scaled))
 
 # # goodFeaturesToTrack parms
 # max_corners = 0
