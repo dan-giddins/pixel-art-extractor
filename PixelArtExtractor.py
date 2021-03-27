@@ -197,7 +197,7 @@ diff_array = [diff, diff, diff]
 cv2.floodFill(pixel_image_crop, mask, (0,0), [0, 0, 0], loDiff=diff_array , upDiff=diff_array)
 
 # scale up
-scale = 4
+scale = 16
 trans_h = crop_h * scale
 trans_w = crop_w * scale
 pixel_image_transparent = numpy.full((trans_h, trans_w, 4), [0, 0, 0, 0])
