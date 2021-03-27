@@ -70,7 +70,7 @@ def rotate(point, angle, origin = (0, 0)):
 
 # read source img
 img = cv2.imread('rotated_cat.png')
-img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+#img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 # edge detection
 edges = cv2.Canny(img,20,50,L2gradient = True)
 
@@ -141,7 +141,7 @@ print(avg_offset_y)
 pixel_cords = []
 pixel_width = 200
 pixel_height = 200
-pixel_image = numpy.full((pixel_width, pixel_height, 4), [0, 0, 0, 0])
+pixel_image = numpy.full((pixel_width, pixel_height, 3), [255, 255, 255])
 h, w, c = img.shape
 cos = numpy.cos(avg_angle - numpy.pi/2)
 sin = numpy.sin(avg_angle - numpy.pi/2)
@@ -160,15 +160,62 @@ for pixel_y in range(pixel_height):
         y = int(avg_distance * y_unit)
         if (x < w and x >= 0 and y < h and y >= 0):
             pixel_cords.append((x, y))
-            pixel = [img[y, x][0], img[y, x][1], img[y, x][2], 255]
             #print(pixel)
-            pixel_image[pixel_y, pixel_x] = pixel
+            pixel_image[pixel_y, pixel_x] = img[y, x]
 
 #showPointsOnImg(img, pixel_cords)
 
-printImg(pixel_image)
-pixel_image = cv2.cvtColor(pixel_image, cv2.COLOR_RGBA2BGRA)
-#print(cv2.imwrite('C:\\Users\\Proto\\OneDrive\\Pictures\\pixel_cat\\pixel_cat_fixed.png', pixel_image))
+#printImg(pixel_image)
+
+# crop to 1 pixel more that image (assume background is white)
+top = pixel_height
+bottom = 0
+left = pixel_width
+right = 0
+for y in range(pixel_height):
+    for x in range(pixel_width):
+        if not numpy.array_equal(pixel_image[y, x], [255, 255, 255]):
+            if x < left:
+                left = x
+            if x > right:
+                right = x
+            if y < top:
+                top = y
+            if y > bottom:
+                bottom = y
+crop_h = bottom - top + 3
+crop_w = right - left + 3
+pixel_image_crop = numpy.full((crop_h, crop_w, 3), [255, 255, 255])
+for y in range(crop_h):
+    for x in range(crop_w):
+        pixel_image_crop[y, x] = pixel_image[y + top - 1, x + left - 1]
+
+# flood image to create background mask
+mask = numpy.zeros((crop_h+2, crop_w+2), numpy.uint8)
+diff = 10
+diff_array = [diff, diff, diff]
+cv2.floodFill(pixel_image_crop, mask, (0,0), [0, 0, 0], loDiff=diff_array , upDiff=diff_array)
+
+# scale up
+scale = 16
+trans_h = crop_h * scale
+trans_w = crop_w * scale
+pixel_image_transparent = numpy.full((trans_h, trans_w, 4), [0, 0, 0, 0])
+for y in range(crop_h):
+    for x in range(crop_w):
+        if not mask[y+1, x+1]:
+            pixel = pixel_image_crop[y, x]
+            for y_offset in range(y * scale, (y + 1) * scale):
+                for x_offset in range(x * scale, (x + 1) * scale):
+                    # swap R and B colour channels
+                    pixel_image_transparent[y_offset, x_offset] = [pixel[0], pixel[1], pixel[2], 255]
+
+#printImg(mask)
+#printImg(pixel_image_transparent)
+
+# add one white pixel boarder 
+print(cv2.imwrite('C:\\Users\\Proto\\OneDrive\\Pictures\\pixel_cat\\pixel_cat_fixed_trans_scaled.png', pixel_image_transparent))
+
 # # goodFeaturesToTrack parms
 # max_corners = 0
 # quality_level = 0.01
