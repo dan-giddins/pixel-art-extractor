@@ -74,7 +74,6 @@ def findBoarder(img, x, y, boarder_pixels, checked_pixels):
         return
     else:
         checked_pixels.add((x, y))
-    print((x, y))
     h, w, c = img.shape
     # up
     if (y > 0):
@@ -82,24 +81,48 @@ def findBoarder(img, x, y, boarder_pixels, checked_pixels):
             boarder_pixels.add((x, y))
         else:
             findBoarder(img, x, y - 1, boarder_pixels, checked_pixels)
+            # up right
+            if (x < w - 1):
+                if (img[y - 1, x + 1][3]):
+                    boarder_pixels.add((x, y))
+                else:
+                    findBoarder(img, x + 1, y - 1, boarder_pixels, checked_pixels)
     # right
     if (x < w - 1):
         if (img[y, x + 1][3]):
             boarder_pixels.add((x, y))
         else:
             findBoarder(img, x + 1, y, boarder_pixels, checked_pixels)
+            # right down
+            if (y < h - 1):
+                if (img[y + 1, x + 1][3]):
+                    boarder_pixels.add((x, y))
+                else:
+                    findBoarder(img, x + 1, y + 1, boarder_pixels, checked_pixels)
     # down
     if (y < h - 1):
         if (img[y + 1, x][3]):
             boarder_pixels.add((x, y))
         else:
             findBoarder(img, x, y+1, boarder_pixels, checked_pixels)
+            # down left
+            if (x > 0):
+                if (img[y + 1, x - 1][3]):
+                    boarder_pixels.add((x, y))
+                else:
+                    findBoarder(img, x - 1, y + 1, boarder_pixels, checked_pixels)
     # left
     if (x > 0):
         if (img[y, x - 1][3]):
             boarder_pixels.add((x, y))
         else:
             findBoarder(img, x - 1, y, boarder_pixels, checked_pixels)
+            if (y > 0):
+                if (img[y - 1, x - 1][3]):
+                    boarder_pixels.add((x, y))
+                else:
+                    findBoarder(img, x - 1, y - 1, boarder_pixels, checked_pixels)
+    
 
 # read source img
 img = cv2.imread('rotated_cat.png')
@@ -115,8 +138,6 @@ acc_thresh = 100
 # line detection
 lines = cv2.HoughLines(edges,rho_res,theta_res,acc_thresh).reshape(-1,2).tolist()
 
-#print(lines)
-
 # display lines
 for line in lines:
     rho = line[0]
@@ -131,18 +152,14 @@ for line in lines:
     y2 = int(y0 - 1000*(a))
     #cv2.line(img,(x1,y1),(x2,y2),(0,0,0),1)
 
-#printImg(img)
-
 # get average angle
 angle_sum = 0
 for line in lines:
     angle_sum += line[1] % (numpy.pi/2)
 avg_angle = angle_sum / len(lines)
-print(avg_angle)
 
 # get an average distance between all the lines that are 1 'pixel' apart
 line_distances = []
-print(len(lines))
 for l1 in lines:
     for l2 in lines:
         line_distances.append(abs(abs(l1[0]) - abs(l2[0])))
@@ -155,7 +172,6 @@ for length in valid_lengths:
     length_sum += length[0] * length[1]
     count +=length[1]
 avg_distance = length_sum / count
-print(avg_distance)
 
 # get the average pixel offset for x and y
 offset_sum_x = 0
@@ -167,8 +183,6 @@ for line in lines:
          offset_sum_x += line[0] % avg_distance
 avg_offset_x = offset_sum_x / len(lines)
 avg_offset_y = offset_sum_y / len(lines)
-print(avg_offset_x)
-print(avg_offset_y)
 
 # get pixel cords
 pixel_cords = []
@@ -193,12 +207,9 @@ for pixel_y in range(pixel_height):
         y = int(avg_distance * y_unit)
         if (x < w and x >= 0 and y < h and y >= 0):
             pixel_cords.append((x, y))
-            #print(pixel)
             pixel_image[pixel_y, pixel_x] = img[y, x]
 
 #showPointsOnImg(img, pixel_cords)
-
-#printImg(pixel_image)
 
 # crop to 1 pixel more that image (assume background is white)
 top = pixel_height
@@ -256,11 +267,8 @@ for y in range(crop_h):
             for x_offset in range(x * scale, (x + 1) * scale):
                 pixel_image_scaled[y_offset, x_offset] = pixel_image_transparent[y, x]
 
-#printImg(mask)
-#printImg(pixel_image_scaled)
-
 # add one white pixel boarder 
-print(cv2.imwrite('C:\\Users\\Proto\\OneDrive\\Pictures\\pixel_cat\\pixel_cat_fixed_trans_scaled_boarder.png', pixel_image_scaled))
+print(cv2.imwrite('C:\\Users\\Proto\\OneDrive\\Pictures\\pixel_cat\\pixel_cat_fixed_trans_scaled_boarder_thicker.png', pixel_image_scaled))
 
 # # goodFeaturesToTrack parms
 # max_corners = 0
