@@ -18,8 +18,10 @@ def main():
     drawLines(lines, image)
     average_angle_offset = get_angle_offset(lines)
     average_line_distance = get_average_line_distance(lines)
-    average_pixel_offset = get_average_pixel_offset(lines, average_line_distance)
-    pixel_image, pixel_coordinates = get_pixel_image_and_coordinates(image, average_angle_offset, average_pixel_offset, average_line_distance)
+    average_pixel_offset = get_average_pixel_offset(
+        lines, average_line_distance)
+    pixel_image, pixel_coordinates = get_pixel_image_and_coordinates(
+        image, average_angle_offset, average_pixel_offset, average_line_distance)
     draw_points_on_image(image, pixel_coordinates)
     print_image(image)
     # crop to 1 pixel more that image (assume background is white)
@@ -87,6 +89,7 @@ def main():
     # add one white pixel border
     print(cv2.imwrite('C:\\Users\\Proto\\OneDrive\\Pictures\\pixel_cat\\pixel_cat_fixed_trans_scaled_border_thicker.png', pixel_image_scaled))
 
+
 def get_pixel_image_and_coordinates(image, average_angle_offset, average_pixel_offset, average_line_distance):
     """Get the new image and the coordinates of the pixels in relation to the orginal image"""
     pixel_coordinates = []
@@ -97,8 +100,10 @@ def get_pixel_image_and_coordinates(image, average_angle_offset, average_pixel_o
     width = image.shape[1]
     cos = numpy.cos(average_angle_offset - numpy.pi/2)
     sin = numpy.sin(average_angle_offset - numpy.pi/2)
-    pixel_offset_x = (average_pixel_offset[0] / average_line_distance) - pixel_width/2
-    pixel_offset_y = (average_pixel_offset[1] / average_line_distance) - pixel_height/2
+    pixel_offset_x = (
+        average_pixel_offset[0] / average_line_distance) - pixel_width/2
+    pixel_offset_y = (
+        average_pixel_offset[1] / average_line_distance) - pixel_height/2
     # 0.5 as we want center of 'pixel' from original image
     for pixel_y in range(pixel_height):
         for pixel_x in range(pixel_width):
@@ -115,6 +120,7 @@ def get_pixel_image_and_coordinates(image, average_angle_offset, average_pixel_o
                 pixel_image[pixel_y, pixel_x] = image[y_scaled, x_scaled]
     return pixel_image, pixel_coordinates
 
+
 def get_average_pixel_offset(lines, average_line_distance):
     # get the average pixel offset for x and y
     offset_sum_x = 0
@@ -128,10 +134,12 @@ def get_average_pixel_offset(lines, average_line_distance):
     avg_offset_y = offset_sum_y / len(lines)
     return (avg_offset_x, avg_offset_y)
 
+
 def get_average_line_distance(lines):
     """Get an average distance between all the lines that are 1 'pixel' apart."""
     line_distances = get_line_distances(lines)
     sorted_line_distances = Counter(line_distances).most_common()
+
     def filter_lambda(line_distances):
         return line_distances[0] > 5 and line_distances[0] < 20 and line_distances[1] > len(lines)/2
     valid_lengths = list(filter(filter_lambda, sorted_line_distances))
@@ -143,12 +151,14 @@ def get_average_line_distance(lines):
     average_line_distance = length_sum / count
     return average_line_distance
 
+
 def get_line_distances(lines):
     line_distances = []
     for line_1 in lines:
         for line_2 in lines:
             line_distances.append(abs(abs(line_1[0]) - abs(line_2[0])))
     return line_distances
+
 
 def get_angle_offset(lines):
     """Get the average angle offset of the lines."""
@@ -158,9 +168,10 @@ def get_angle_offset(lines):
     avg_angle = angle_sum / len(lines)
     return avg_angle
 
+
 def get_lines(edges):
     """Detect all lines in the image."""
-    lines = cv2.HoughLines(edges, 1/2, numpy.pi/(180*2**6),100)
+    lines = cv2.HoughLines(edges, 1/2, numpy.pi/(180*2**6), 100)
     lines = lines.reshape(-1, 2).tolist()
     return lines
 
