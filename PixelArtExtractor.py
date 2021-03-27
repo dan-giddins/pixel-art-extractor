@@ -70,7 +70,7 @@ def rotate(point, angle, origin = (0, 0)):
 
 # read source img
 img = cv2.imread('rotated_cat.png')
-img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+#img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 # edge detection
 edges = cv2.Canny(img,20,50,L2gradient = True)
 
@@ -208,11 +208,12 @@ for y in range(crop_h):
             for y_offset in range(y * scale, (y + 1) * scale):
                 for x_offset in range(x * scale, (x + 1) * scale):
                     # swap R and B colour channels
-                    pixel_image_transparent[y_offset, x_offset] = [pixel[2], pixel[1], pixel[0], 255]
+                    pixel_image_transparent[y_offset, x_offset] = [pixel[0], pixel[1], pixel[2], 255]
 
 #printImg(mask)
 #printImg(pixel_image_transparent)
 
+# add one white pixel boarder 
 print(cv2.imwrite('C:\\Users\\Proto\\OneDrive\\Pictures\\pixel_cat\\pixel_cat_fixed_trans_scaled.png', pixel_image_transparent))
 
 # # goodFeaturesToTrack parms
