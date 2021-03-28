@@ -12,12 +12,12 @@ from matplotlib import pyplot
 def main():
     """The main entrypoint for the application."""
     parser = argparse.ArgumentParser(
-        description="Extract the pixel art from an image.")
-    parser.add_argument("source_image", help="Filepath to the source image.")
+        description="Extract the original pixel art from an image.")
+    parser.add_argument("source_image", help="filepath to the source image")
     parser.add_argument(
-        '-b', '--border', help="Add a white border to the image.", action='store_true')
+        '-b', '--border', help="add a white border to the image", action='store_true')
     parser.add_argument(
-        '-s', '--scale', help="Value to scale the final image up by.")
+        '-s', '--scale', help="value to scale the final image up by", type=int)
     args = parser.parse_args()
     image = cv2.imread(args.source_image)
     # print_BGR_image(image)
@@ -44,7 +44,7 @@ def main():
         create_border(pixel_image_transparent)
     else:
         pixel_image_transparent = crop_down(pixel_image_transparent)
-    if args.scale > 1:
+    if args.scale and args.scale > 1:
         pixel_image_transparent = scale_up(pixel_image_transparent, args.scale)
     print_bgra_image(pixel_image_transparent)
     filepath = "pixel_art.png"
