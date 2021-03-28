@@ -1,4 +1,5 @@
 """Extract the original pixel art from an image."""
+import argparse
 import copy
 import math
 from collections import Counter
@@ -10,7 +11,15 @@ from matplotlib import pyplot
 
 def main():
     """The main entrypoint for the application."""
-    image = cv2.imread('rotated_cat.png')
+    parser = argparse.ArgumentParser(
+        description="Extract the pixel art from an image.")
+    parser.add_argument("source_image", help="Filepath to the source image.")
+    parser.add_argument(
+        '-b', '--border', help="Add a white border to the image.", action='store_true')
+    parser.add_argument(
+        '-s', '--scale', help="Value to scale the final image up by.")
+    args = parser.parse_args()
+    image = cv2.imread(args.source_image)
     # print_BGR_image(image)
     edges = cv2.Canny(image, 20, 50, L2gradient=True)
     lines = get_lines(edges)
@@ -27,17 +36,34 @@ def main():
     #     "pixel_cat_lines_and_pixels.png"
     # write_image_to_file(image, filepath)
     # print_BGR_image(image)
-    pixel_image_crop = crop_image(pixel_image)
-    mask = get_background_mask(pixel_image_crop)
-    pixel_image_transparent = make_background_transparent(
-        pixel_image_crop, mask)
+    pixel_image = crop_image(pixel_image)
+    mask = get_background_mask(pixel_image)
+    pixel_image_transparent = make_background_transparent(pixel_image, mask)
     # print_BGRA_image(pixel_image_transparent)
-    create_border(pixel_image_transparent)
-    pixel_image_scaled = scale_up(pixel_image_transparent)
-    print_bgra_image(pixel_image_scaled)
-    # filepath = "C:\\Users\\Proto\\OneDrive\\Pictures\\pixel_cat\\"\
-    #     "pixel_cat_fixed_trans_scaled_border_thicker.png"
-    # write_image_to_file(pixel_image_scaled, filepath)
+    if args.border:
+        create_border(pixel_image_transparent)
+    else:
+        pixel_image_transparent = crop_down(pixel_image_transparent)
+    if args.scale > 1:
+        pixel_image_transparent = scale_up(pixel_image_transparent, args.scale)
+    print_bgra_image(pixel_image_transparent)
+    filepath = "pixel_art.png"
+    write_image_to_file(pixel_image_transparent, filepath)
+
+
+def crop_down(image):
+    """Crop away the one pixel gap."""
+    shape = image.shape
+    height = shape[0]
+    width = shape[1]
+    cropped_height = height - 2
+    cropped_width = width - 2
+    cropped_image = numpy.full(
+        (cropped_height, cropped_width, 4), [0, 0, 0, 0])
+    for y_pos in range(cropped_height):
+        for x_pos in range(cropped_width):
+            cropped_image[y_pos, x_pos] = image[y_pos + 1, x_pos + 1]
+    return cropped_image
 
 
 def write_image_to_file(image, filepath):
@@ -49,9 +75,8 @@ def write_image_to_file(image, filepath):
         print("Error writing file!")
 
 
-def scale_up(image):
+def scale_up(image, scale):
     """Scale up an image."""
-    scale = 16
     height, width = get_shape(image)
     scaled_height = height * scale
     scaled_width = width * scale
