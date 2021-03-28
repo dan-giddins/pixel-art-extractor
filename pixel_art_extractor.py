@@ -7,73 +7,83 @@ from collections import Counter
 import cv2
 import numpy
 from matplotlib import pyplot
+import copy
+import logging
 
+logging.basicConfig(filename='C:/MyLog.log',level=logging.DEBUG)
 
 def main():
     """The main entrypoint for the application."""
     image = cv2.imread('rotated_cat.png')
-    print_image(image)
+    #print_BGR_image(image)
     edges = cv2.Canny(image, 20, 50, L2gradient=True)
     lines = get_lines(edges)
-    #drawLines(lines, image)
+    drawLines(lines, image)
     average_angle_offset = get_angle_offset(lines)
     average_line_distance = get_average_line_distance(lines)
     average_pixel_offset = get_average_pixel_offset(
-        lines,
-        average_line_distance)
+        lines, average_line_distance)
     pixel_image, pixel_coordinates = get_pixel_image_and_coordinates(
-        image,
-        average_angle_offset,
-        average_pixel_offset,
-        average_line_distance)
+        image, average_angle_offset, average_pixel_offset, average_line_distance)
     draw_points_on_image(image, pixel_coordinates)
-    print_BGR_image(image)
+    #print_BGR_image(image)
     pixel_image_crop = crop_image(pixel_image)
     mask = get_background_mask(pixel_image_crop)
-    pixel_image_transparent = make_background_transparent(pixel_image_crop, mask)
+    pixel_image_transparent = make_background_transparent(
+        pixel_image_crop, mask)
+    #print_BGRA_image(pixel_image_transparent)
     create_border(pixel_image_transparent)
     pixel_image_scaled = scale_up(pixel_image_transparent)
     print_BGRA_image(pixel_image_scaled)
     write_image_to_file(pixel_image_scaled)
 
-def write_image_to_file(pixel_image_scaled):
-    """Write an image to file."""
-    print(cv2.imwrite('C:\\Users\\Proto\\OneDrive\\Pictures\\pixel_cat\\pixel_cat_fixed_trans_scaled_border_thicker.png', pixel_image_scaled))
 
-def scale_up(pixel_image_transparent):
+def write_image_to_file(image):
+    """Write an image to file."""
+    filepath = "C:\\Users\\Proto\\OneDrive\\Pictures\\pixel_cat\\pixel_cat_fixed_trans_scaled_border_thicker.png"
+    written = cv2.imwrite(filepath, image)
+    if written:
+        print("Image written to '" + filepath + "'.")
+    else:
+        print("Error writing file!")
+
+
+def scale_up(image):
     """Scale up an image."""
     scale = 16
-    height = pixel_image_transparent.shape[0]
-    width = pixel_image_transparent.shape[1]
+    height = image.shape[0]
+    width = image.shape[1]
     scaled_height = height * scale
     scaled_width = width * scale
-    pixel_image_scaled = numpy.full((scaled_height, scaled_width, 4), [0, 0, 0, 0])
+    pixel_image_scaled = numpy.full(
+        (scaled_height, scaled_width, 4), [0, 0, 0, 0])
     for y in range(height):
         for x in range(width):
             for y_offset in range(y * scale, (y + 1) * scale):
                 for x_offset in range(x * scale, (x + 1) * scale):
-                    pixel_image_scaled[y_offset, x_offset] = pixel_image_transparent[y, x]
+                    pixel_image_scaled[y_offset, x_offset] = image[y, x]
     return pixel_image_scaled
 
-def create_border(pixel_image_transparent):
+
+def create_border(image):
     """Create a border around the item in the image."""
     border_pixels = set()
     checked_pixels = set()
-    sys.setrecursionlimit(10000)
-    find_border(pixel_image_transparent, 0, 0, border_pixels, checked_pixels)
+    find_border(image, 0, 0, border_pixels, checked_pixels)
     white_pixel = [255, 255, 255, 255]
     for border_pixel in border_pixels:
-        pixel_image_transparent[border_pixel[1], border_pixel[0]] = white_pixel
+        image[border_pixel[1], border_pixel[0]] = white_pixel
 
-def make_background_transparent(pixel_image_crop, mask):
+
+def make_background_transparent(image, mask):
     """Make the background of an image transparent using a mask"""
-    crop_h = pixel_image_crop.shape[0]
-    crop_w = pixel_image_crop.shape[1]
+    crop_h = image.shape[0]
+    crop_w = image.shape[1]
     pixel_image_transparent = numpy.full((crop_h, crop_w, 4), [0, 0, 0, 0])
     for y in range(crop_h):
         for x in range(crop_w):
             if not mask[y+1, x+1]:
-                pixel = pixel_image_crop[y, x]
+                pixel = image[y, x]
                 pixel_image_transparent[y, x] = [
                     pixel[0],
                     pixel[1],
@@ -81,28 +91,30 @@ def make_background_transparent(pixel_image_crop, mask):
                     255]
     return pixel_image_transparent
 
-def get_background_mask(pixel_image_crop):
+
+def get_background_mask(image):
     """Flood an image to create background mask."""
-    height = pixel_image_crop.shape[0]
-    width = pixel_image_crop.shape[1]
+    height = image.shape[0]
+    width = image.shape[1]
     mask = numpy.zeros((height+2, width+2), numpy.uint8)
     diff = 10
     diff_array = [diff, diff, diff]
-    cv2.floodFill(pixel_image_crop, mask, (0, 0), [
+    cv2.floodFill(image, mask, (0, 0), [
                   0, 0, 0], loDiff=diff_array, upDiff=diff_array)
     return mask
 
-def crop_image(pixel_image):
+
+def crop_image(image):
     """Crop an image to 1 pixel more that image, assuming the image background is white."""
-    pixel_height = pixel_image.shape[0]
-    pixel_width = pixel_image.shape[1]
+    pixel_height = image.shape[0]
+    pixel_width = image.shape[1]
     top = pixel_height
     bottom = 0
     left = pixel_width
     right = 0
     for y in range(pixel_height):
         for x in range(pixel_width):
-            if not numpy.array_equal(pixel_image[y, x], [255, 255, 255]):
+            if not numpy.array_equal(image[y, x], [255, 255, 255]):
                 if x < left:
                     left = x
                 if x > right:
@@ -116,7 +128,7 @@ def crop_image(pixel_image):
     pixel_image_crop = numpy.full((crop_h, crop_w, 3), [255, 255, 255])
     for y in range(crop_h):
         for x in range(crop_w):
-            pixel_image_crop[y, x] = pixel_image[y + top - 1, x + left - 1]
+            pixel_image_crop[y, x] = image[y + top - 1, x + left - 1]
     return pixel_image_crop
 
 
@@ -205,15 +217,22 @@ def get_lines(edges):
     lines = lines.reshape(-1, 2).tolist()
     return lines
 
+
 def print_BGR_image(image):
     """Print a BGR image."""
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    print_image(image)
+    temp_image = copy.deepcopy(image)
+    temp_image = cv2.cvtColor(temp_image, cv2.COLOR_BGR2RGB)
+    print_image(temp_image)
+
 
 def print_BGRA_image(image):
     """Print a BGRA image."""
-    image = cv2.cvtColor(image, cv2.COLOR_BGRA2RGBA)
-    print_image(image)
+    temp_image = copy.deepcopy(image)
+    b,g,r,a = cv2.split(temp_image)
+    temp_image[:,:,0] = r
+    temp_image[:,:,2] = b
+    print_image(temp_image)
+
 
 def print_image(image):
     """Print an image using pyplot."""
@@ -238,62 +257,67 @@ def rotate_point(point, angle, origin=(0, 0)):
 
 def find_border(image, x_pos, y_pos, border_pixels, checked_pixels):
     """Recursively check neighbouring pixels to see if current pixel is a border pixel."""
-    if (x_pos, y_pos) in checked_pixels:
-        return
-    else:
-        checked_pixels.add((x_pos, y_pos))
-    height, width = image.shape
-    # up
-    if y_pos > 0:
-        if image[y_pos - 1, x_pos][3]:
-            border_pixels.add((x_pos, y_pos))
+    stack = [(image, x_pos, y_pos, border_pixels, checked_pixels)]
+    while (len(stack)):
+        arguments = stack.pop()
+        image = arguments[0]
+        x_pos = arguments[1]
+        y_pos = arguments[2]
+        border_pixels = arguments[3]
+        checked_pixels = arguments[4]
+        if (x_pos, y_pos) in checked_pixels:
+            continue
         else:
-            find_border(image, x_pos, y_pos - 1, border_pixels, checked_pixels)
-            # up right
-            if x_pos < width - 1:
-                if image[y_pos - 1, x_pos + 1][3]:
-                    border_pixels.add((x_pos, y_pos))
-                else:
-                    find_border(image, x_pos + 1, y_pos - 1,
-                                border_pixels, checked_pixels)
-    # right
-    if x_pos < width - 1:
-        if image[y_pos, x_pos + 1][3]:
-            border_pixels.add((x_pos, y_pos))
-        else:
-            find_border(image, x_pos + 1, y_pos, border_pixels, checked_pixels)
-            # right down
-            if y_pos < height - 1:
-                if image[y_pos + 1, x_pos + 1][3]:
-                    border_pixels.add((x_pos, y_pos))
-                else:
-                    find_border(image, x_pos + 1, y_pos + 1,
-                                border_pixels, checked_pixels)
-    # down
-    if y_pos < height - 1:
-        if image[y_pos + 1, x_pos][3]:
-            border_pixels.add((x_pos, y_pos))
-        else:
-            find_border(image, x_pos, y_pos+1, border_pixels, checked_pixels)
-            # down left
-            if x_pos > 0:
-                if (image[y_pos + 1, x_pos - 1][3]):
-                    border_pixels.add((x_pos, y_pos))
-                else:
-                    find_border(image, x_pos - 1, y_pos + 1,
-                                border_pixels, checked_pixels)
-    # left
-    if x_pos > 0:
-        if image[y_pos, x_pos - 1][3]:
-            border_pixels.add((x_pos, y_pos))
-        else:
-            find_border(image, x_pos - 1, y_pos, border_pixels, checked_pixels)
-            if y_pos > 0:
-                if image[y_pos - 1, x_pos - 1][3]:
-                    border_pixels.add((x_pos, y_pos))
-                else:
-                    find_border(image, x_pos - 1, y_pos - 1,
-                                border_pixels, checked_pixels)
+            checked_pixels.add((x_pos, y_pos))
+        height = image.shape[0]
+        width = image.shape[1]
+        # up
+        if y_pos > 0:
+            if image[y_pos - 1, x_pos][3]:
+                border_pixels.add((x_pos, y_pos))
+            else:
+                stack.append((image, x_pos, y_pos - 1, border_pixels, checked_pixels))
+                # up right
+                if x_pos < width - 1:
+                    if image[y_pos - 1, x_pos + 1][3]:
+                        border_pixels.add((x_pos, y_pos))
+                    else:
+                        stack.append((image, x_pos + 1, y_pos - 1,border_pixels, checked_pixels))
+        # right
+        if x_pos < width - 1:
+            if image[y_pos, x_pos + 1][3]:
+                border_pixels.add((x_pos, y_pos))
+            else:
+                stack.append((image, x_pos + 1, y_pos, border_pixels, checked_pixels))
+                # right down
+                if y_pos < height - 1:
+                    if image[y_pos + 1, x_pos + 1][3]:
+                        border_pixels.add((x_pos, y_pos))
+                    else:
+                        stack.append((image, x_pos + 1, y_pos + 1,border_pixels, checked_pixels))
+        # down
+        if y_pos < height - 1:
+            if image[y_pos + 1, x_pos][3]:
+                border_pixels.add((x_pos, y_pos))
+            else:
+                stack.append((image, x_pos, y_pos+1, border_pixels, checked_pixels))
+                # down left
+                if x_pos > 0:
+                    if (image[y_pos + 1, x_pos - 1][3]):
+                        border_pixels.add((x_pos, y_pos))
+                    else:
+                        stack.append((image, x_pos - 1, y_pos + 1,border_pixels, checked_pixels))
+        # left
+        if x_pos > 0:
+            if image[y_pos, x_pos - 1][3]:
+                border_pixels.add((x_pos, y_pos))
+            else:
+                stack.append((image, x_pos - 1, y_pos, border_pixels, checked_pixels))
+                if y_pos > 0:
+                    if image[y_pos - 1, x_pos - 1][3]:
+                        border_pixels.add((x_pos, y_pos))
+                    else:
+                        stack.append((image, x_pos - 1, y_pos - 1, border_pixels, checked_pixels))
 
 
 def drawLines(lines, image):
@@ -312,4 +336,10 @@ def drawLines(lines, image):
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+
+    except Exception as e:
+        logging.info(e)
+        
+
