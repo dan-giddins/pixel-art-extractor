@@ -1,46 +1,43 @@
 """Extract the original pixel art from an image."""
-
+import copy
 import math
-import sys
 from collections import Counter
 
 import cv2
 import numpy
 from matplotlib import pyplot
-import copy
-import logging
 
-logging.basicConfig(filename='C:/MyLog.log',level=logging.DEBUG)
 
 def main():
     """The main entrypoint for the application."""
     image = cv2.imread('rotated_cat.png')
-    #print_BGR_image(image)
+    # print_BGR_image(image)
     edges = cv2.Canny(image, 20, 50, L2gradient=True)
     lines = get_lines(edges)
-    drawLines(lines, image)
+    #draw_lines(lines, image)
     average_angle_offset = get_angle_offset(lines)
     average_line_distance = get_average_line_distance(lines)
     average_pixel_offset = get_average_pixel_offset(
         lines, average_line_distance)
     pixel_image, pixel_coordinates = get_pixel_image_and_coordinates(
         image, average_angle_offset, average_pixel_offset, average_line_distance)
-    draw_points_on_image(image, pixel_coordinates)
-    #print_BGR_image(image)
+    #draw_points_on_image(image, pixel_coordinates)
+    # print_BGR_image(image)
     pixel_image_crop = crop_image(pixel_image)
     mask = get_background_mask(pixel_image_crop)
     pixel_image_transparent = make_background_transparent(
         pixel_image_crop, mask)
-    #print_BGRA_image(pixel_image_transparent)
+    # print_BGRA_image(pixel_image_transparent)
     create_border(pixel_image_transparent)
     pixel_image_scaled = scale_up(pixel_image_transparent)
-    print_BGRA_image(pixel_image_scaled)
+    print_bgra_image(pixel_image_scaled)
     write_image_to_file(pixel_image_scaled)
 
 
 def write_image_to_file(image):
     """Write an image to file."""
-    filepath = "C:\\Users\\Proto\\OneDrive\\Pictures\\pixel_cat\\pixel_cat_fixed_trans_scaled_border_thicker.png"
+    filepath = "C:\\Users\\Proto\\OneDrive\\Pictures\\pixel_cat\\"\
+        "pixel_cat_fixed_trans_scaled_border_thicker.png"
     written = cv2.imwrite(filepath, image)
     if written:
         print("Image written to '" + filepath + "'.")
@@ -51,17 +48,17 @@ def write_image_to_file(image):
 def scale_up(image):
     """Scale up an image."""
     scale = 16
-    height = image.shape[0]
-    width = image.shape[1]
+    height, width = get_shape(image)
     scaled_height = height * scale
     scaled_width = width * scale
     pixel_image_scaled = numpy.full(
         (scaled_height, scaled_width, 4), [0, 0, 0, 0])
-    for y in range(height):
-        for x in range(width):
-            for y_offset in range(y * scale, (y + 1) * scale):
-                for x_offset in range(x * scale, (x + 1) * scale):
-                    pixel_image_scaled[y_offset, x_offset] = image[y, x]
+    for y_pos in range(height):
+        for x_pos in range(width):
+            for y_offset in range(y_pos * scale, (y_pos + 1) * scale):
+                for x_offset in range(x_pos * scale, (x_pos + 1) * scale):
+                    pixel_image_scaled[y_offset,
+                                       x_offset] = image[y_pos, x_pos]
     return pixel_image_scaled
 
 
@@ -77,14 +74,13 @@ def create_border(image):
 
 def make_background_transparent(image, mask):
     """Make the background of an image transparent using a mask"""
-    crop_h = image.shape[0]
-    crop_w = image.shape[1]
-    pixel_image_transparent = numpy.full((crop_h, crop_w, 4), [0, 0, 0, 0])
-    for y in range(crop_h):
-        for x in range(crop_w):
-            if not mask[y+1, x+1]:
-                pixel = image[y, x]
-                pixel_image_transparent[y, x] = [
+    height, width = get_shape(image)
+    pixel_image_transparent = numpy.full((height, width, 4), [0, 0, 0, 0])
+    for y_pos in range(height):
+        for x_pos in range(width):
+            if not mask[y_pos+1, x_pos+1]:
+                pixel = image[y_pos, x_pos]
+                pixel_image_transparent[y_pos, x_pos] = [
                     pixel[0],
                     pixel[1],
                     pixel[2],
@@ -94,52 +90,59 @@ def make_background_transparent(image, mask):
 
 def get_background_mask(image):
     """Flood an image to create background mask."""
-    height = image.shape[0]
-    width = image.shape[1]
+    height, width = get_shape(image)
     mask = numpy.zeros((height+2, width+2), numpy.uint8)
     diff = 10
     diff_array = [diff, diff, diff]
     cv2.floodFill(image, mask, (0, 0), [
-                  0, 0, 0], loDiff=diff_array, upDiff=diff_array)
+        0, 0, 0], loDiff=diff_array, upDiff=diff_array)
     return mask
 
 
 def crop_image(image):
     """Crop an image to 1 pixel more that image, assuming the image background is white."""
-    pixel_height = image.shape[0]
-    pixel_width = image.shape[1]
-    top = pixel_height
+    height, width = get_shape(image)
+    top = height
     bottom = 0
-    left = pixel_width
+    left = width
     right = 0
-    for y in range(pixel_height):
-        for x in range(pixel_width):
-            if not numpy.array_equal(image[y, x], [255, 255, 255]):
-                if x < left:
-                    left = x
-                if x > right:
-                    right = x
-                if y < top:
-                    top = y
-                if y > bottom:
-                    bottom = y
+    for y_pos in range(height):
+        for x_pos in range(width):
+            if not numpy.array_equal(image[y_pos, x_pos], [255, 255, 255]):
+                if x_pos < left:
+                    left = x_pos
+                if x_pos > right:
+                    right = x_pos
+                if y_pos < top:
+                    top = y_pos
+                if y_pos > bottom:
+                    bottom = y_pos
     crop_h = bottom - top + 3
     crop_w = right - left + 3
     pixel_image_crop = numpy.full((crop_h, crop_w, 3), [255, 255, 255])
-    for y in range(crop_h):
-        for x in range(crop_w):
-            pixel_image_crop[y, x] = image[y + top - 1, x + left - 1]
+    for y_pos in range(crop_h):
+        for x_pos in range(crop_w):
+            pixel_image_crop[y_pos, x_pos] = image[y_pos +
+                                                   top - 1, x_pos + left - 1]
     return pixel_image_crop
 
 
-def get_pixel_image_and_coordinates(image, average_angle_offset, average_pixel_offset, average_line_distance):
+def get_shape(image):
+    """Get the dimensions of an image."""
+    shape = image.shape
+    height = shape[0]
+    width = shape[1]
+    return height, width
+
+
+def get_pixel_image_and_coordinates(
+        image, average_angle_offset, average_pixel_offset, average_line_distance):
     """Get the new image and the coordinates of the pixels in relation to the orginal image"""
     pixel_coordinates = []
     pixel_width = 200
     pixel_height = 200
     pixel_image = numpy.full((pixel_width, pixel_height, 3), [255, 255, 255])
-    height = image.shape[0]
-    width = image.shape[1]
+    height, width = get_shape(image)
     cos = numpy.cos(average_angle_offset - numpy.pi/2)
     sin = numpy.sin(average_angle_offset - numpy.pi/2)
     pixel_offset_x = (
@@ -164,7 +167,7 @@ def get_pixel_image_and_coordinates(image, average_angle_offset, average_pixel_o
 
 
 def get_average_pixel_offset(lines, average_line_distance):
-    # get the average pixel offset for x and y
+    """Get the average x and y pixel offset."""
     offset_sum_x = 0
     offset_sum_y = 0
     for line in lines:
@@ -195,6 +198,7 @@ def get_average_line_distance(lines):
 
 
 def get_line_distances(lines):
+    """Get the distances between all the lines."""
     line_distances = []
     for line_1 in lines:
         for line_2 in lines:
@@ -218,19 +222,19 @@ def get_lines(edges):
     return lines
 
 
-def print_BGR_image(image):
+def print_bgr_image(image):
     """Print a BGR image."""
     temp_image = copy.deepcopy(image)
     temp_image = cv2.cvtColor(temp_image, cv2.COLOR_BGR2RGB)
     print_image(temp_image)
 
 
-def print_BGRA_image(image):
+def print_bgra_image(image):
     """Print a BGRA image."""
     temp_image = copy.deepcopy(image)
-    b,g,r,a = cv2.split(temp_image)
-    temp_image[:,:,0] = r
-    temp_image[:,:,2] = b
+    split = cv2.split(temp_image)
+    temp_image[:, :, 0] = split[2]
+    temp_image[:, :, 2] = split[0]
     print_image(temp_image)
 
 
@@ -258,7 +262,7 @@ def rotate_point(point, angle, origin=(0, 0)):
 def find_border(image, x_pos, y_pos, border_pixels, checked_pixels):
     """Recursively check neighbouring pixels to see if current pixel is a border pixel."""
     stack = [(image, x_pos, y_pos, border_pixels, checked_pixels)]
-    while (len(stack)):
+    while len(stack) > 0:
         arguments = stack.pop()
         image = arguments[0]
         x_pos = arguments[1]
@@ -269,77 +273,79 @@ def find_border(image, x_pos, y_pos, border_pixels, checked_pixels):
             continue
         else:
             checked_pixels.add((x_pos, y_pos))
-        height = image.shape[0]
-        width = image.shape[1]
+        height, width = get_shape(image)
         # up
         if y_pos > 0:
             if image[y_pos - 1, x_pos][3]:
                 border_pixels.add((x_pos, y_pos))
             else:
-                stack.append((image, x_pos, y_pos - 1, border_pixels, checked_pixels))
+                stack.append((image, x_pos, y_pos - 1,
+                              border_pixels, checked_pixels))
                 # up right
                 if x_pos < width - 1:
                     if image[y_pos - 1, x_pos + 1][3]:
                         border_pixels.add((x_pos, y_pos))
                     else:
-                        stack.append((image, x_pos + 1, y_pos - 1,border_pixels, checked_pixels))
+                        stack.append((image, x_pos + 1, y_pos - 1,
+                                      border_pixels, checked_pixels))
         # right
         if x_pos < width - 1:
             if image[y_pos, x_pos + 1][3]:
                 border_pixels.add((x_pos, y_pos))
             else:
-                stack.append((image, x_pos + 1, y_pos, border_pixels, checked_pixels))
+                stack.append((image, x_pos + 1, y_pos,
+                              border_pixels, checked_pixels))
                 # right down
                 if y_pos < height - 1:
                     if image[y_pos + 1, x_pos + 1][3]:
                         border_pixels.add((x_pos, y_pos))
                     else:
-                        stack.append((image, x_pos + 1, y_pos + 1,border_pixels, checked_pixels))
+                        stack.append((image, x_pos + 1, y_pos + 1,
+                                      border_pixels, checked_pixels))
         # down
         if y_pos < height - 1:
             if image[y_pos + 1, x_pos][3]:
                 border_pixels.add((x_pos, y_pos))
             else:
-                stack.append((image, x_pos, y_pos+1, border_pixels, checked_pixels))
+                stack.append(
+                    (image, x_pos, y_pos+1, border_pixels, checked_pixels))
                 # down left
                 if x_pos > 0:
                     if (image[y_pos + 1, x_pos - 1][3]):
                         border_pixels.add((x_pos, y_pos))
                     else:
-                        stack.append((image, x_pos - 1, y_pos + 1,border_pixels, checked_pixels))
+                        stack.append((image, x_pos - 1, y_pos + 1,
+                                      border_pixels, checked_pixels))
         # left
         if x_pos > 0:
             if image[y_pos, x_pos - 1][3]:
                 border_pixels.add((x_pos, y_pos))
             else:
-                stack.append((image, x_pos - 1, y_pos, border_pixels, checked_pixels))
+                stack.append((image, x_pos - 1, y_pos,
+                              border_pixels, checked_pixels))
                 if y_pos > 0:
                     if image[y_pos - 1, x_pos - 1][3]:
                         border_pixels.add((x_pos, y_pos))
                     else:
-                        stack.append((image, x_pos - 1, y_pos - 1, border_pixels, checked_pixels))
+                        stack.append((image, x_pos - 1, y_pos - 1,
+                                      border_pixels, checked_pixels))
 
 
-def drawLines(lines, image):
+def draw_lines(lines, image):
+    """Draw lines on an image."""
     for line in lines:
         rho = line[0]
         theta = line[1]
-        a = numpy.cos(theta)
-        b = numpy.sin(theta)
-        x0 = a*rho
-        y0 = b*rho
-        x1 = int(x0 + 1000*(-b))
-        y1 = int(y0 + 1000*(a))
-        x2 = int(x0 - 1000*(-b))
-        y2 = int(y0 - 1000*(a))
-        cv2.line(image, (x1, y1), (x2, y2), (0, 0, 0), 1)
+        cos = numpy.cos(theta)
+        sin = numpy.sin(theta)
+        x_0 = cos*rho
+        y_0 = sin*rho
+        x_1 = int(x_0 + 1000*(-sin))
+        y_1 = int(y_0 + 1000*(cos))
+        x_2 = int(x_0 - 1000*(-sin))
+        y_2 = int(y_0 - 1000*(cos))
+        cv2.line(image, (x_1, y_1), (x_2, y_2), (0, 0, 0), 1)
 
 
 if __name__ == "__main__":
-    try:
-        main()
-
-    except Exception as e:
-        logging.info(e)
-        
-
+    main()
