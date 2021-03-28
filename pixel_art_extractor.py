@@ -1,4 +1,5 @@
 """Extract the original pixel art from an image."""
+import argparse
 import copy
 import math
 from collections import Counter
@@ -6,14 +7,17 @@ from collections import Counter
 import cv2
 import numpy
 from matplotlib import pyplot
-import argparse
+
 
 def main():
     """The main entrypoint for the application."""
-    parser = argparse.ArgumentParser(description="Extract the pixel art from an image.")
+    parser = argparse.ArgumentParser(
+        description="Extract the pixel art from an image.")
     parser.add_argument("source_image", help="Filepath to the source image.")
-    parser.add_argument('-b', '--border', help="Add a white border to the image.", action='store_true')
-    parser.add_argument('-s', '--scale', help="Value to scale the final image up by.")
+    parser.add_argument(
+        '-b', '--border', help="Add a white border to the image.", action='store_true')
+    parser.add_argument(
+        '-s', '--scale', help="Value to scale the final image up by.")
     args = parser.parse_args()
     image = cv2.imread(args.source_image)
     # print_BGR_image(image)
@@ -47,6 +51,7 @@ def main():
     filepath = "pixel_art.png"
     write_image_to_file(pixel_image_transparent, filepath)
 
+
 def crop_down(image):
     shape = image.shape
     height = shape[0]
@@ -59,6 +64,7 @@ def crop_down(image):
         for x_pos in range(cropped_width):
             cropped_image[y_pos, x_pos] = image[y_pos + 1, x_pos + 1]
     return cropped_image
+
 
 def write_image_to_file(image, filepath):
     """Write an image to file."""
