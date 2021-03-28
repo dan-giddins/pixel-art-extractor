@@ -19,9 +19,10 @@ def main():
     average_line_distance = get_average_line_distance(lines)
     average_pixel_offset = get_average_pixel_offset(
         lines, average_line_distance)
-    pixel_image, pixel_coordinates = get_pixel_image_and_coordinates(
+    pixel_image_and_coordinates = get_pixel_image_and_coordinates(
         image, average_angle_offset, average_pixel_offset, average_line_distance)
-    #draw_points_on_image(image, pixel_coordinates)
+    pixel_image = pixel_image_and_coordinates[0]
+    #draw_points_on_image(image, pixel_image_and_coordinates[1])
     # print_BGR_image(image)
     pixel_image_crop = crop_image(pixel_image)
     mask = get_background_mask(pixel_image_crop)
