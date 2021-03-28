@@ -14,7 +14,7 @@ def main():
     # print_BGR_image(image)
     edges = cv2.Canny(image, 20, 50, L2gradient=True)
     lines = get_lines(edges)
-    #draw_lines(lines, image)
+    # draw_lines(lines, image)
     average_angle_offset = get_angle_offset(lines)
     average_line_distance = get_average_line_distance(lines)
     average_pixel_offset = get_average_pixel_offset(
@@ -22,7 +22,10 @@ def main():
     pixel_image_and_coordinates = get_pixel_image_and_coordinates(
         image, average_angle_offset, average_pixel_offset, average_line_distance)
     pixel_image = pixel_image_and_coordinates[0]
-    #draw_points_on_image(image, pixel_image_and_coordinates[1])
+    # draw_points_on_image(image, pixel_image_and_coordinates[1])
+    # filepath = "C:\\Users\\Proto\\OneDrive\\Pictures\\pixel_cat\\"\
+    #     "pixel_cat_lines_and_pixels.png"
+    # write_image_to_file(image, filepath)
     # print_BGR_image(image)
     pixel_image_crop = crop_image(pixel_image)
     mask = get_background_mask(pixel_image_crop)
@@ -32,13 +35,13 @@ def main():
     create_border(pixel_image_transparent)
     pixel_image_scaled = scale_up(pixel_image_transparent)
     print_bgra_image(pixel_image_scaled)
-    write_image_to_file(pixel_image_scaled)
+    # filepath = "C:\\Users\\Proto\\OneDrive\\Pictures\\pixel_cat\\"\
+    #     "pixel_cat_fixed_trans_scaled_border_thicker.png"
+    # write_image_to_file(pixel_image_scaled, filepath)
 
 
-def write_image_to_file(image):
+def write_image_to_file(image, filepath):
     """Write an image to file."""
-    filepath = "C:\\Users\\Proto\\OneDrive\\Pictures\\pixel_cat\\"\
-        "pixel_cat_fixed_trans_scaled_border_thicker.png"
     written = cv2.imwrite(filepath, image)
     if written:
         print("Image written to '" + filepath + "'.")
