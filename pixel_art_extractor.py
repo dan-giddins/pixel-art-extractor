@@ -40,12 +40,11 @@ def main():
     mask = get_background_mask(pixel_image)
     pixel_image_transparent = make_background_transparent(pixel_image, mask)
     # print_BGRA_image(pixel_image_transparent)
-    if (args.border):
+    if args.border:
         create_border(pixel_image_transparent)
     else:
-        # crop away the one pixel gap left for the sake of the background removal and border
         pixel_image_transparent = crop_down(pixel_image_transparent)
-    if (args.scale > 1):
+    if args.scale > 1:
         pixel_image_transparent = scale_up(pixel_image_transparent, args.scale)
     print_bgra_image(pixel_image_transparent)
     filepath = "pixel_art.png"
@@ -53,6 +52,7 @@ def main():
 
 
 def crop_down(image):
+    """Crop away the one pixel gap."""
     shape = image.shape
     height = shape[0]
     width = shape[1]
