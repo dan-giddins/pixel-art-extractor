@@ -1,6 +1,0 @@
-{
-    "python.pythonPath": "C:\\Python39\\python.exe",
-    "python.linting.pylintArgs": [
-        "--extension-pkg-whitelist=cv2"
-    ]
-}
