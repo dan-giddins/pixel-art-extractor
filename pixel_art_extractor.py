@@ -15,16 +15,85 @@ def main():
     print_image(image)
     edges = cv2.Canny(image, 20, 50, L2gradient=True)
     lines = get_lines(edges)
-    drawLines(lines, image)
+    #drawLines(lines, image)
     average_angle_offset = get_angle_offset(lines)
     average_line_distance = get_average_line_distance(lines)
     average_pixel_offset = get_average_pixel_offset(
-        lines, average_line_distance)
+        lines,
+        average_line_distance)
     pixel_image, pixel_coordinates = get_pixel_image_and_coordinates(
-        image, average_angle_offset, average_pixel_offset, average_line_distance)
+        image,
+        average_angle_offset,
+        average_pixel_offset,
+        average_line_distance)
     draw_points_on_image(image, pixel_coordinates)
-    print_image(image)
-    # crop to 1 pixel more that image (assume background is white)
+    print_BGR_image(image)
+    pixel_image_crop = crop_image(pixel_image)
+    mask = get_background_mask(pixel_image_crop)
+    pixel_image_transparent = make_background_transparent(pixel_image_crop, mask)
+    create_border(pixel_image_transparent)
+    pixel_image_scaled = scale_up(pixel_image_transparent)
+    print_BGRA_image(pixel_image_scaled)
+    write_image_to_file(pixel_image_scaled)
+
+def write_image_to_file(pixel_image_scaled):
+    """Write an image to file."""
+    print(cv2.imwrite('C:\\Users\\Proto\\OneDrive\\Pictures\\pixel_cat\\pixel_cat_fixed_trans_scaled_border_thicker.png', pixel_image_scaled))
+
+def scale_up(pixel_image_transparent):
+    """Scale up an image."""
+    scale = 16
+    height = pixel_image_transparent.shape[0]
+    width = pixel_image_transparent.shape[1]
+    scaled_height = height * scale
+    scaled_width = width * scale
+    pixel_image_scaled = numpy.full((scaled_height, scaled_width, 4), [0, 0, 0, 0])
+    for y in range(height):
+        for x in range(width):
+            for y_offset in range(y * scale, (y + 1) * scale):
+                for x_offset in range(x * scale, (x + 1) * scale):
+                    pixel_image_scaled[y_offset, x_offset] = pixel_image_transparent[y, x]
+    return pixel_image_scaled
+
+def create_border(pixel_image_transparent):
+    """Create a border around the item in the image."""
+    border_pixels = set()
+    checked_pixels = set()
+    sys.setrecursionlimit(10000)
+    find_border(pixel_image_transparent, 0, 0, border_pixels, checked_pixels)
+    white_pixel = [255, 255, 255, 255]
+    for border_pixel in border_pixels:
+        pixel_image_transparent[border_pixel[1], border_pixel[0]] = white_pixel
+
+def make_background_transparent(pixel_image_crop, mask):
+    """Make the background of an image transparent using a mask"""
+    crop_h = pixel_image_crop.shape[0]
+    crop_w = pixel_image_crop.shape[1]
+    pixel_image_transparent = numpy.full((crop_h, crop_w, 4), [0, 0, 0, 0])
+    for y in range(crop_h):
+        for x in range(crop_w):
+            if not mask[y+1, x+1]:
+                pixel = pixel_image_crop[y, x]
+                pixel_image_transparent[y, x] = [
+                    pixel[0],
+                    pixel[1],
+                    pixel[2],
+                    255]
+    return pixel_image_transparent
+
+def get_background_mask(pixel_image_crop):
+    """Flood an image to create background mask."""
+    height = pixel_image_crop.shape[0]
+    width = pixel_image_crop.shape[1]
+    mask = numpy.zeros((height+2, width+2), numpy.uint8)
+    diff = 10
+    diff_array = [diff, diff, diff]
+    cv2.floodFill(pixel_image_crop, mask, (0, 0), [
+                  0, 0, 0], loDiff=diff_array, upDiff=diff_array)
+    return mask
+
+def crop_image(pixel_image):
+    """Crop an image to 1 pixel more that image, assuming the image background is white."""
     pixel_height = pixel_image.shape[0]
     pixel_width = pixel_image.shape[1]
     top = pixel_height
@@ -48,46 +117,7 @@ def main():
     for y in range(crop_h):
         for x in range(crop_w):
             pixel_image_crop[y, x] = pixel_image[y + top - 1, x + left - 1]
-
-    # flood image to create background mask
-    mask = numpy.zeros((crop_h+2, crop_w+2), numpy.uint8)
-    diff = 10
-    diff_array = [diff, diff, diff]
-    cv2.floodFill(pixel_image_crop, mask, (0, 0), [
-                  0, 0, 0], loDiff=diff_array, upDiff=diff_array)
-
-    # make background transparent
-    pixel_image_transparent = numpy.full((crop_h, crop_w, 4), [0, 0, 0, 0])
-    for y in range(crop_h):
-        for x in range(crop_w):
-            if not mask[y+1, x+1]:
-                pixel = pixel_image_crop[y, x]
-                pixel_image_transparent[y, x] = [
-                    pixel[0], pixel[1], pixel[2], 255]
-
-    # create border
-    border_pixels = set()
-    checked_pixels = set()
-    sys.setrecursionlimit(10000)
-    find_border(pixel_image_transparent, 0, 0, border_pixels, checked_pixels)
-    for border_pixel in border_pixels:
-        pixel_image_transparent[border_pixel[1],
-                                border_pixel[0]] = [255, 255, 255, 255]
-
-    # scale up
-    scale = 16
-    scaled_h = crop_h * scale
-    scaled_w = crop_w * scale
-    pixel_image_scaled = numpy.full((scaled_h, scaled_w, 4), [0, 0, 0, 0])
-    for y in range(crop_h):
-        for x in range(crop_w):
-            for y_offset in range(y * scale, (y + 1) * scale):
-                for x_offset in range(x * scale, (x + 1) * scale):
-                    pixel_image_scaled[y_offset,
-                                       x_offset] = pixel_image_transparent[y, x]
-
-    # add one white pixel border
-    print(cv2.imwrite('C:\\Users\\Proto\\OneDrive\\Pictures\\pixel_cat\\pixel_cat_fixed_trans_scaled_border_thicker.png', pixel_image_scaled))
+    return pixel_image_crop
 
 
 def get_pixel_image_and_coordinates(image, average_angle_offset, average_pixel_offset, average_line_distance):
@@ -175,10 +205,18 @@ def get_lines(edges):
     lines = lines.reshape(-1, 2).tolist()
     return lines
 
+def print_BGR_image(image):
+    """Print a BGR image."""
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    print_image(image)
+
+def print_BGRA_image(image):
+    """Print a BGRA image."""
+    image = cv2.cvtColor(image, cv2.COLOR_BGRA2RGBA)
+    print_image(image)
 
 def print_image(image):
-    """Print the image using pyplot."""
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    """Print an image using pyplot."""
     pyplot.imshow(image)
     pyplot.show()
 
