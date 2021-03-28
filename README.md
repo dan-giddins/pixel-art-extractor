@@ -2,6 +2,15 @@
 
 A python script to extract the original pixel art from an image, even if the pixel art has been scaled, translated, or rotated.
 
+positional arguments:
+  source_image          Filepath to the source image.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -b, --border          Add a white border to the image.
+  -s SCALE, --scale SCALE
+                        Value to scale the final image up by.
+
 Source image:
 
 <img src="https://user-images.githubusercontent.com/16902799/112755782-2b7a2600-8fda-11eb-9803-ca76b0e38600.png" width="50%">
