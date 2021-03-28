@@ -278,61 +278,101 @@ def find_border(image, x_pos, y_pos, border_pixels, checked_pixels):
         else:
             checked_pixels.add((x_pos, y_pos))
         height, width = get_shape(image)
-        # up
-        if y_pos > 0:
-            if image[y_pos - 1, x_pos][3]:
-                border_pixels.add((x_pos, y_pos))
-            else:
-                stack.append((image, x_pos, y_pos - 1,
-                              border_pixels, checked_pixels))
-                # up right
-                if x_pos < width - 1:
-                    if image[y_pos - 1, x_pos + 1][3]:
-                        border_pixels.add((x_pos, y_pos))
-                    else:
-                        stack.append((image, x_pos + 1, y_pos - 1,
-                                      border_pixels, checked_pixels))
-        # right
-        if x_pos < width - 1:
-            if image[y_pos, x_pos + 1][3]:
-                border_pixels.add((x_pos, y_pos))
-            else:
-                stack.append((image, x_pos + 1, y_pos,
-                              border_pixels, checked_pixels))
-                # right down
-                if y_pos < height - 1:
-                    if image[y_pos + 1, x_pos + 1][3]:
-                        border_pixels.add((x_pos, y_pos))
-                    else:
-                        stack.append((image, x_pos + 1, y_pos + 1,
-                                      border_pixels, checked_pixels))
-        # down
-        if y_pos < height - 1:
-            if image[y_pos + 1, x_pos][3]:
-                border_pixels.add((x_pos, y_pos))
-            else:
-                stack.append(
-                    (image, x_pos, y_pos+1, border_pixels, checked_pixels))
-                # down left
-                if x_pos > 0:
-                    if (image[y_pos + 1, x_pos - 1][3]):
-                        border_pixels.add((x_pos, y_pos))
-                    else:
-                        stack.append((image, x_pos - 1, y_pos + 1,
-                                      border_pixels, checked_pixels))
-        # left
-        if x_pos > 0:
-            if image[y_pos, x_pos - 1][3]:
-                border_pixels.add((x_pos, y_pos))
-            else:
-                stack.append((image, x_pos - 1, y_pos,
-                              border_pixels, checked_pixels))
-                if y_pos > 0:
-                    if image[y_pos - 1, x_pos - 1][3]:
-                        border_pixels.add((x_pos, y_pos))
-                    else:
-                        stack.append((image, x_pos - 1, y_pos - 1,
-                                      border_pixels, checked_pixels))
+        check_up(y_pos, image, x_pos, border_pixels,
+                 stack, checked_pixels, width)
+        check_right(x_pos, width, image, y_pos, border_pixels,
+                    stack, checked_pixels, height)
+        check_down(y_pos, height, image, x_pos,
+                   border_pixels, stack, checked_pixels)
+        check_left(x_pos, image, y_pos, border_pixels, stack, checked_pixels)
+
+
+def check_left(x_pos, image, y_pos, border_pixels, stack, checked_pixels):
+    """Check the left and left-up pixel."""
+    if x_pos > 0:
+        if image[y_pos, x_pos - 1][3]:
+            border_pixels.add((x_pos, y_pos))
+        else:
+            stack.append((image, x_pos - 1, y_pos,
+                          border_pixels, checked_pixels))
+            check_left_up(y_pos, image, x_pos, border_pixels,
+                          stack, checked_pixels)
+
+
+def check_left_up(y_pos, image, x_pos, border_pixels, stack, checked_pixels):
+    """Check the left-up pixel."""
+    if y_pos > 0:
+        if image[y_pos - 1, x_pos - 1][3]:
+            border_pixels.add((x_pos, y_pos))
+        else:
+            stack.append((image, x_pos - 1, y_pos - 1,
+                          border_pixels, checked_pixels))
+
+
+def check_down(y_pos, height, image, x_pos, border_pixels, stack, checked_pixels):
+    """Check the down and down-left pixel."""
+    if y_pos < height - 1:
+        if image[y_pos + 1, x_pos][3]:
+            border_pixels.add((x_pos, y_pos))
+        else:
+            stack.append(
+                (image, x_pos, y_pos+1, border_pixels, checked_pixels))
+            check_down_left(x_pos, image, y_pos, border_pixels,
+                            stack, checked_pixels)
+
+
+def check_down_left(x_pos, image, y_pos, border_pixels, stack, checked_pixels):
+    """Check the down-left pixel."""
+    if x_pos > 0:
+        if (image[y_pos + 1, x_pos - 1][3]):
+            border_pixels.add((x_pos, y_pos))
+        else:
+            stack.append((image, x_pos - 1, y_pos + 1,
+                          border_pixels, checked_pixels))
+
+
+def check_right(x_pos, width, image, y_pos, border_pixels, stack, checked_pixels, height):
+    """Check the right and right-down pixel."""
+    if x_pos < width - 1:
+        if image[y_pos, x_pos + 1][3]:
+            border_pixels.add((x_pos, y_pos))
+        else:
+            stack.append((image, x_pos + 1, y_pos,
+                          border_pixels, checked_pixels))
+            check_right_down(y_pos, height, image, x_pos,
+                             border_pixels, stack, checked_pixels)
+
+
+def check_right_down(y_pos, height, image, x_pos, border_pixels, stack, checked_pixels):
+    """Check the right-down pixel."""
+    if y_pos < height - 1:
+        if image[y_pos + 1, x_pos + 1][3]:
+            border_pixels.add((x_pos, y_pos))
+        else:
+            stack.append((image, x_pos + 1, y_pos + 1,
+                          border_pixels, checked_pixels))
+
+
+def check_up(y_pos, image, x_pos, border_pixels, stack, checked_pixels, width):
+    """Check the up and up-right pixel."""
+    if y_pos > 0:
+        if image[y_pos - 1, x_pos][3]:
+            border_pixels.add((x_pos, y_pos))
+        else:
+            stack.append((image, x_pos, y_pos - 1,
+                          border_pixels, checked_pixels))
+            check_up_right(x_pos, width, image, y_pos,
+                           border_pixels, stack, checked_pixels)
+
+
+def check_up_right(x_pos, width, image, y_pos, border_pixels, stack, checked_pixels):
+    """Check the up-right pixel."""
+    if x_pos < width - 1:
+        if image[y_pos - 1, x_pos + 1][3]:
+            border_pixels.add((x_pos, y_pos))
+        else:
+            stack.append((image, x_pos + 1, y_pos - 1,
+                          border_pixels, checked_pixels))
 
 
 def draw_lines(lines, image):
