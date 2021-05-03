@@ -20,7 +20,7 @@ optional arguments:
     * Make sure to add Python to PATH during installation.
 3. Download [pixel_art_extractor.py](https://raw.githubusercontent.com/dan-giddins/pixel-art-extractor/master/pixel_art_extractor.py) to a new folder.
 4. Open a terminal in the folder you have downloaded pixel_art_extractor.py to.
-    * In Windows, you can do this by opening file explorer and shift-right-clicking on the new folder, then clicking 'Open in Powershell'.
+    * In Windows, you can do this by opening file explorer and shift-right-clicking on the new folder you have just created, then clicking 'Open in Powershell'.
 6. In the command window, type `python pixel_art_extractor.py -h` and press enter to check everything is working. You should see a small help page.
 7. Enter `python pixel_art_extractor.py` followed by a space and then the file path of the source image.
     * For example:
