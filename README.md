@@ -2,7 +2,7 @@
 
 ## Description
 
-A python script to extract the original pixel art from an image, even if the pixel art has been scaled, translated, or rotated.
+A python script to extract the original pixel art from a PNG image, even if the pixel art has been scaled, translated, or rotated.
 
 ```
 positional arguments:
@@ -28,7 +28,7 @@ optional arguments:
     * In Windows, you can do this by opening file explorer and shift-right-clicking on the new folder you have just created, then clicking 'Open in Powershell'
 7. In the command window, type `python pixel_art_extractor.py -h` and press enter to check everything is working
     * You should see a few lines of help text
-8. Enter `python pixel_art_extractor.py` followed by a space and then the file path of the source image
+8. Enter `python pixel_art_extractor.py` followed by a space and then the file path of the PNG source image
     * For example:
         * `python pixel_art_extractor.py C:\Path\To\File\picture.png`
     * If you have spaces in the filepath, you will need to add single quotes to the filepath argument:
