@@ -26,7 +26,7 @@ def main():
     image_with_markings = copy.deepcopy(image)
     draw_lines(lines, image_with_markings)
     average_angle_offset = get_angle_offset(lines)
-    pixel_width = float(input("Please enter the approximate width (in actual pixels) of a 'pixel' in your image (you can use the shown 'source image' popup window to help you determine the width): "))
+    pixel_width = float(input("Please enter the approximate width in actual source image pixels (you may use decimals) of a 'pixel' of your desired target image (you can use the displayed 'source image' popup to help you determine this width): "))
     average_line_distance = get_average_line_distance(lines, pixel_width)
     average_pixel_offset = get_average_pixel_offset(
         lines, average_line_distance)
@@ -154,8 +154,7 @@ def crop_image(image):
     pixel_image_crop = numpy.full((crop_h, crop_w, 3), [255, 255, 255])
     for y_pos in range(crop_h):
         for x_pos in range(crop_w):
-            pixel_image_crop[y_pos, x_pos] = image[y_pos +
-                                                   top - 1, x_pos + left - 1]
+            pixel_image_crop[y_pos, x_pos] = image[y_pos + top - 2, x_pos + left - 2]
     return pixel_image_crop
 
 
