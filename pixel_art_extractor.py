@@ -20,10 +20,10 @@ def main():
         '-s', '--scale', help="value to scale the final image up by", type=int)
     args = parser.parse_args()
     image = cv2.imread(args.source_image)
-    # print_BGR_image(image)
+    #print_bgr_image(image)
     edges = cv2.Canny(image, 20, 50, L2gradient=True)
     lines = get_lines(edges)
-    # draw_lines(lines, image)
+    draw_lines(lines, image)
     average_angle_offset = get_angle_offset(lines)
     average_line_distance = get_average_line_distance(lines)
     average_pixel_offset = get_average_pixel_offset(
@@ -31,15 +31,15 @@ def main():
     pixel_image_and_coordinates = get_pixel_image_and_coordinates(
         image, average_angle_offset, average_pixel_offset, average_line_distance)
     pixel_image = pixel_image_and_coordinates[0]
-    # draw_points_on_image(image, pixel_image_and_coordinates[1])
+    draw_points_on_image(image, pixel_image_and_coordinates[1])
     # filepath = "C:\\Users\\Proto\\OneDrive\\Pictures\\pixel_cat\\"\
     #     "pixel_cat_lines_and_pixels.png"
     # write_image_to_file(image, filepath)
-    # print_BGR_image(image)
+    print_bgr_image(image)
     pixel_image = crop_image(pixel_image)
     mask = get_background_mask(pixel_image)
     pixel_image_transparent = make_background_transparent(pixel_image, mask)
-    # print_BGRA_image(pixel_image_transparent)
+    print_bgra_image(pixel_image_transparent)
     if args.border:
         create_border(pixel_image_transparent)
     else:
@@ -236,10 +236,10 @@ def get_line_distances(lines):
 
 
 def get_angle_offset(lines):
-    """Get the average angle offset of the lines."""
+    """Get the average angle offset (rad) of the lines."""
     angle_sum = 0
     for line in lines:
-        angle_sum += line[1] % (numpy.pi/2)
+        angle_sum += ((line[1] + (numpy.pi/4)) % (numpy.pi/2)) - (numpy.pi/4)
     avg_angle = angle_sum / len(lines)
     return avg_angle
 
