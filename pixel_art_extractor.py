@@ -413,10 +413,10 @@ def draw_lines(lines, image):
         sin = numpy.sin(theta)
         x_0 = cos*rho
         y_0 = sin*rho
-        x_1 = int(x_0 + 1000*(-sin))
-        y_1 = int(y_0 + 1000*(cos))
-        x_2 = int(x_0 - 1000*(-sin))
-        y_2 = int(y_0 - 1000*(cos))
+        x_1 = int(x_0 + 10000*(-sin))
+        y_1 = int(y_0 + 10000*(cos))
+        x_2 = int(x_0 - 10000*(-sin))
+        y_2 = int(y_0 - 10000*(cos))
         cv2.line(image, (x_1, y_1), (x_2, y_2), (0, 0, 0), 1)
 
 
