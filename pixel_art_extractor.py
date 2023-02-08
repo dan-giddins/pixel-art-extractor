@@ -271,9 +271,10 @@ def print_bgra_image(image, title):
 
 def print_image(image, title):
     """Print an image using pyplot."""
+    pyplot.figure()
     pyplot.title(title)
     pyplot.imshow(image)
-    pyplot.draw()
+    pyplot.show(block=False)
 
 
 def draw_points_on_image(image, points):
