@@ -172,8 +172,8 @@ def get_pixel_image_and_coordinates(
     pixel_height = 200
     pixel_image = numpy.full((pixel_width, pixel_height, 3), [255, 255, 255])
     height, width = get_shape(image)
-    cos = numpy.cos(average_angle_offset - numpy.pi/2)
-    sin = numpy.sin(average_angle_offset - numpy.pi/2)
+    cos = numpy.cos(average_angle_offset)
+    sin = numpy.sin(average_angle_offset)
     pixel_offset_x = (
         average_pixel_offset[0] / average_line_distance) - pixel_width/2
     pixel_offset_y = (
