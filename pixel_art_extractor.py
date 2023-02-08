@@ -20,12 +20,13 @@ def main():
         '-s', '--scale', help="value to scale the final image up by", type=int)
     args = parser.parse_args()
     image = cv2.imread(args.source_image)
-    #print_bgr_image(image)
+    print_bgr_image(image)
     edges = cv2.Canny(image, 20, 50, L2gradient=True)
     lines = get_lines(edges)
     draw_lines(lines, image)
     average_angle_offset = get_angle_offset(lines)
-    average_line_distance = get_average_line_distance(lines)
+    pixel_width = input("Please enter the average width (in actual pixels) of a 'pixel' in your image: ")
+    average_line_distance = get_average_line_distance(lines, pixel_width)
     average_pixel_offset = get_average_pixel_offset(
         lines, average_line_distance)
     pixel_image_and_coordinates = get_pixel_image_and_coordinates(
@@ -209,14 +210,13 @@ def get_average_pixel_offset(lines, average_line_distance):
     return (avg_offset_x, avg_offset_y)
 
 
-def get_average_line_distance(lines):
+def get_average_line_distance(lines, pixel_width):
     """Get an average distance between all the lines that are 1 'pixel' apart."""
     line_distances = get_line_distances(lines)
     sorted_line_distances = Counter(line_distances).most_common()
-
-    def filter_lambda(line_distances):
-        return line_distances[0] > 5 and line_distances[0] < 20 and line_distances[1] > len(lines)/2
-    valid_lengths = list(filter(filter_lambda, sorted_line_distances))
+    def filter_lambda(line_distances, pixel_width):
+        return line_distances[0] > pixel_width * 0.8 and line_distances[0] < pixel_width * 1.2 and line_distances[1] > len(lines)/2
+    valid_lengths = list(filter(filter_lambda, (sorted_line_distances, pixel_width)))
     length_sum = 0
     count = 0
     for length in valid_lengths:
