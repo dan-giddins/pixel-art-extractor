@@ -18,6 +18,8 @@ def main():
         '-b', '--border', help="add a white border to the image", action='store_true')
     parser.add_argument(
         '-s', '--scale', help="value to scale the final image up by", type=int)
+    parser.add_argument(
+        '-w', '--width', help="approximate width in actual source image pixels (you may use decimals) of a 'pixel' of your desired target image", type=float)
     args = parser.parse_args()
     image = cv2.imread(args.source_image)
     print_bgr_image(image, "Source image")
@@ -26,7 +28,10 @@ def main():
     image_with_markings = copy.deepcopy(image)
     draw_lines(lines, image_with_markings)
     average_angle_offset = get_angle_offset(lines)
-    pixel_width = float(input("Please enter the approximate width in actual source image pixels (you may use decimals) of a 'pixel' of your desired target image (you can use the displayed 'source image' popup to help you determine this width): "))
+    if (args.width is None):
+        pixel_width = float(input("Please enter the approximate width in actual source image pixels (you may use decimals) of a 'pixel' of your desired target image (you can use the displayed 'source image' popup to help you determine this width): "))
+    else:
+        pixel_width = args.width
     average_line_distance = get_average_line_distance(lines, pixel_width)
     average_pixel_offset = get_average_pixel_offset(
         lines, average_line_distance)
