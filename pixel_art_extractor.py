@@ -20,35 +20,38 @@ def main():
         '-s', '--scale', help="value to scale the final image up by", type=int)
     args = parser.parse_args()
     image = cv2.imread(args.source_image)
-    # print_BGR_image(image)
+    print_bgr_image(image, "Source image")
     edges = cv2.Canny(image, 20, 50, L2gradient=True)
     lines = get_lines(edges)
-    # draw_lines(lines, image)
+    image_with_markings = copy.deepcopy(image)
+    draw_lines(lines, image_with_markings)
     average_angle_offset = get_angle_offset(lines)
-    average_line_distance = get_average_line_distance(lines)
+    pixel_width = float(input("Please enter the approximate width in actual source image pixels (you may use decimals) of a 'pixel' of your desired target image (you can use the displayed 'source image' popup to help you determine this width): "))
+    average_line_distance = get_average_line_distance(lines, pixel_width)
     average_pixel_offset = get_average_pixel_offset(
         lines, average_line_distance)
     pixel_image_and_coordinates = get_pixel_image_and_coordinates(
         image, average_angle_offset, average_pixel_offset, average_line_distance)
     pixel_image = pixel_image_and_coordinates[0]
-    # draw_points_on_image(image, pixel_image_and_coordinates[1])
+    draw_points_on_image(image_with_markings, pixel_image_and_coordinates[1])
     # filepath = "C:\\Users\\Proto\\OneDrive\\Pictures\\pixel_cat\\"\
     #     "pixel_cat_lines_and_pixels.png"
     # write_image_to_file(image, filepath)
-    # print_BGR_image(image)
+    print_bgr_image(image_with_markings, "Image with markings")
     pixel_image = crop_image(pixel_image)
     mask = get_background_mask(pixel_image)
     pixel_image_transparent = make_background_transparent(pixel_image, mask)
-    # print_BGRA_image(pixel_image_transparent)
+    #print_bgra_image(pixel_image_transparent, "dunno")
     if args.border:
         create_border(pixel_image_transparent)
     else:
         pixel_image_transparent = crop_down(pixel_image_transparent)
     if args.scale and args.scale > 1:
         pixel_image_transparent = scale_up(pixel_image_transparent, args.scale)
-    print_bgra_image(pixel_image_transparent)
     filepath = "pixel_art.png"
     write_image_to_file(pixel_image_transparent, filepath)
+    print_bgra_image(pixel_image_transparent, "Final pixelised image (saved to pixel_art.png)")
+    pyplot.show()
 
 
 def crop_down(image):
@@ -151,8 +154,7 @@ def crop_image(image):
     pixel_image_crop = numpy.full((crop_h, crop_w, 3), [255, 255, 255])
     for y_pos in range(crop_h):
         for x_pos in range(crop_w):
-            pixel_image_crop[y_pos, x_pos] = image[y_pos +
-                                                   top - 1, x_pos + left - 1]
+            pixel_image_crop[y_pos, x_pos] = image[y_pos + top - 2, x_pos + left - 2]
     return pixel_image_crop
 
 
@@ -172,8 +174,8 @@ def get_pixel_image_and_coordinates(
     pixel_height = 200
     pixel_image = numpy.full((pixel_width, pixel_height, 3), [255, 255, 255])
     height, width = get_shape(image)
-    cos = numpy.cos(average_angle_offset - numpy.pi/2)
-    sin = numpy.sin(average_angle_offset - numpy.pi/2)
+    cos = numpy.cos(average_angle_offset)
+    sin = numpy.sin(average_angle_offset)
     pixel_offset_x = (
         average_pixel_offset[0] / average_line_distance) - pixel_width/2
     pixel_offset_y = (
@@ -209,13 +211,12 @@ def get_average_pixel_offset(lines, average_line_distance):
     return (avg_offset_x, avg_offset_y)
 
 
-def get_average_line_distance(lines):
+def get_average_line_distance(lines, pixel_width):
     """Get an average distance between all the lines that are 1 'pixel' apart."""
     line_distances = get_line_distances(lines)
     sorted_line_distances = Counter(line_distances).most_common()
-
     def filter_lambda(line_distances):
-        return line_distances[0] > 5 and line_distances[0] < 20 and line_distances[1] > len(lines)/2
+        return line_distances[0] > (pixel_width * 0.8) and line_distances[0] < (pixel_width * 1.2) and line_distances[1] > len(lines)/2
     valid_lengths = list(filter(filter_lambda, sorted_line_distances))
     length_sum = 0
     count = 0
@@ -236,10 +237,10 @@ def get_line_distances(lines):
 
 
 def get_angle_offset(lines):
-    """Get the average angle offset of the lines."""
+    """Get the average angle offset (rad) of the lines."""
     angle_sum = 0
     for line in lines:
-        angle_sum += line[1] % (numpy.pi/2)
+        angle_sum += ((line[1] + (numpy.pi/4)) % (numpy.pi/2)) - (numpy.pi/4)
     avg_angle = angle_sum / len(lines)
     return avg_angle
 
@@ -251,26 +252,28 @@ def get_lines(edges):
     return lines
 
 
-def print_bgr_image(image):
+def print_bgr_image(image, title):
     """Print a BGR image."""
     temp_image = copy.deepcopy(image)
     temp_image = cv2.cvtColor(temp_image, cv2.COLOR_BGR2RGB)
-    print_image(temp_image)
+    print_image(temp_image, title)
 
 
-def print_bgra_image(image):
+def print_bgra_image(image, title):
     """Print a BGRA image."""
     temp_image = copy.deepcopy(image)
     split = cv2.split(temp_image)
     temp_image[:, :, 0] = split[2]
     temp_image[:, :, 2] = split[0]
-    print_image(temp_image)
+    print_image(temp_image, title)
 
 
-def print_image(image):
+def print_image(image, title):
     """Print an image using pyplot."""
+    pyplot.figure()
+    pyplot.title(title)
     pyplot.imshow(image)
-    pyplot.show()
+    pyplot.show(block=False)
 
 
 def draw_points_on_image(image, points):
@@ -409,10 +412,10 @@ def draw_lines(lines, image):
         sin = numpy.sin(theta)
         x_0 = cos*rho
         y_0 = sin*rho
-        x_1 = int(x_0 + 1000*(-sin))
-        y_1 = int(y_0 + 1000*(cos))
-        x_2 = int(x_0 - 1000*(-sin))
-        y_2 = int(y_0 - 1000*(cos))
+        x_1 = int(x_0 + 10000*(-sin))
+        y_1 = int(y_0 + 10000*(cos))
+        x_2 = int(x_0 - 10000*(-sin))
+        y_2 = int(y_0 - 10000*(cos))
         cv2.line(image, (x_1, y_1), (x_2, y_2), (0, 0, 0), 1)
 
 
