@@ -20,13 +20,13 @@ def main():
         '-s', '--scale', help="value to scale the final image up by", type=int)
     args = parser.parse_args()
     image = cv2.imread(args.source_image)
-    #print_bgr_image(image)
+    print_bgr_image(image, "Source image")
     edges = cv2.Canny(image, 20, 50, L2gradient=True)
     lines = get_lines(edges)
     image_with_markings = copy.deepcopy(image)
     draw_lines(lines, image_with_markings)
     average_angle_offset = get_angle_offset(lines)
-    pixel_width = float(input("Please enter the approximate width (in actual pixels) of a 'pixel' in your image: "))
+    pixel_width = float(input("Please enter the approximate width (in actual pixels) of a 'pixel' in your image (you can use the shown 'source image' popup window to help you determine the width): "))
     average_line_distance = get_average_line_distance(lines, pixel_width)
     average_pixel_offset = get_average_pixel_offset(
         lines, average_line_distance)
@@ -48,9 +48,9 @@ def main():
         pixel_image_transparent = crop_down(pixel_image_transparent)
     if args.scale and args.scale > 1:
         pixel_image_transparent = scale_up(pixel_image_transparent, args.scale)
-    print_bgra_image(pixel_image_transparent, "Final pixelised image")
     filepath = "pixel_art.png"
     write_image_to_file(pixel_image_transparent, filepath)
+    print_bgra_image(pixel_image_transparent, "Final pixelised image (saved to pixel_art.png)")
     pyplot.show()
 
 
