@@ -44,8 +44,10 @@ def main():
     # write_image_to_file(image, filepath)
     print_bgr_image(image_with_markings, "Image with markings")
     pixel_image = crop_image(pixel_image)
+    print_bgra_image(pixel_image, "Cropped")
     mask = get_background_mask(pixel_image)
     pixel_image_transparent = make_background_transparent(pixel_image, mask)
+    print_bgra_image(pixel_image_transparent, "trans")
     #print_bgra_image(pixel_image_transparent, "dunno")
     if args.border:
         create_border(pixel_image_transparent)
@@ -154,12 +156,12 @@ def crop_image(image):
                     top = y_pos
                 if y_pos > bottom:
                     bottom = y_pos
-    crop_h = bottom - top + 5
-    crop_w = right - left + 5
+    crop_h = bottom - top + 3
+    crop_w = right - left + 3
     pixel_image_crop = numpy.full((crop_h, crop_w, 3), [255, 255, 255])
     for y_pos in range(crop_h):
         for x_pos in range(crop_w):
-            pixel_image_crop[y_pos, x_pos] = image[y_pos + top - 2, x_pos + left - 2]
+            pixel_image_crop[y_pos, x_pos] = image[y_pos + top - 1, x_pos + left - 1]
     return pixel_image_crop
 
 
