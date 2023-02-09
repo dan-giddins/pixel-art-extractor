@@ -129,7 +129,7 @@ def get_background_mask(image):
     mask = numpy.zeros((height+2, width+2), numpy.uint8)
     diff = 10
     diff_array = [diff, diff, diff]
-    cv2.floodFill(image, mask, (0, 0), [
+    cv2.floodFill(numpy.array(image), mask, (0, 0), [
         0, 0, 0], loDiff=diff_array, upDiff=diff_array)
     return mask
 
@@ -221,7 +221,7 @@ def get_average_line_distance(lines, pixel_width):
     def filter_lambda(line_distances):
         return line_distances[0] > (pixel_width * 0.8) and line_distances[0] < (pixel_width * 1.2) and line_distances[1] > len(lines)/2
     valid_lengths = list(filter(filter_lambda, sorted_line_distances))
-    if (len(valid_lengths) is 0):
+    if (len(valid_lengths) == 0):
         print("No pixels found based on the given pixel width of " + str(pixel_width) + "! Try entering a diffrent pixel width...")
         exit()
     length_sum = 0
