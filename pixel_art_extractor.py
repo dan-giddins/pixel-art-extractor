@@ -18,6 +18,8 @@ def main():
         '-b', '--border', help="add a white border to the image", action='store_true')
     parser.add_argument(
         '-s', '--scale', help="value to scale the final image up by", type=int)
+    parser.add_argument(
+        '-w', '--width', help="approximate width in actual source image pixels (you may use decimals) of a 'pixel' of your desired target image", type=float)
     args = parser.parse_args()
     image = cv2.imread(args.source_image)
     print_bgr_image(image, "Source image")
@@ -26,7 +28,10 @@ def main():
     image_with_markings = copy.deepcopy(image)
     draw_lines(lines, image_with_markings)
     average_angle_offset = get_angle_offset(lines)
-    pixel_width = float(input("Please enter the approximate width in actual source image pixels (you may use decimals) of a 'pixel' of your desired target image (you can use the displayed 'source image' popup to help you determine this width): "))
+    if (args.width is None):
+        pixel_width = float(input("Please enter the approximate width in actual source image pixels (you may use decimals) of a 'pixel' of your desired target image (you can use the displayed 'source image' popup to help you determine this width): "))
+    else:
+        pixel_width = args.width
     average_line_distance = get_average_line_distance(lines, pixel_width)
     average_pixel_offset = get_average_pixel_offset(
         lines, average_line_distance)
@@ -34,14 +39,12 @@ def main():
         image, average_angle_offset, average_pixel_offset, average_line_distance)
     pixel_image = pixel_image_and_coordinates[0]
     draw_points_on_image(image_with_markings, pixel_image_and_coordinates[1])
-    # filepath = "C:\\Users\\Proto\\OneDrive\\Pictures\\pixel_cat\\"\
-    #     "pixel_cat_lines_and_pixels.png"
-    # write_image_to_file(image, filepath)
     print_bgr_image(image_with_markings, "Image with markings")
     pixel_image = crop_image(pixel_image)
+    #print_bgra_image(pixel_image, "Cropped")
     mask = get_background_mask(pixel_image)
     pixel_image_transparent = make_background_transparent(pixel_image, mask)
-    #print_bgra_image(pixel_image_transparent, "dunno")
+    #print_bgra_image(pixel_image_transparent, "trans")
     if args.border:
         create_border(pixel_image_transparent)
     else:
@@ -154,7 +157,7 @@ def crop_image(image):
     pixel_image_crop = numpy.full((crop_h, crop_w, 3), [255, 255, 255])
     for y_pos in range(crop_h):
         for x_pos in range(crop_w):
-            pixel_image_crop[y_pos, x_pos] = image[y_pos + top - 2, x_pos + left - 2]
+            pixel_image_crop[y_pos, x_pos] = image[y_pos + top - 1, x_pos + left - 1]
     return pixel_image_crop
 
 
@@ -218,6 +221,9 @@ def get_average_line_distance(lines, pixel_width):
     def filter_lambda(line_distances):
         return line_distances[0] > (pixel_width * 0.8) and line_distances[0] < (pixel_width * 1.2) and line_distances[1] > len(lines)/2
     valid_lengths = list(filter(filter_lambda, sorted_line_distances))
+    if (len(valid_lengths) is 0):
+        print("No pixels found based on the given pixel width of " + str(pixel_width) + "! Try entering a diffrent pixel width...")
+        exit()
     length_sum = 0
     count = 0
     for length in valid_lengths:
