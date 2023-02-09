@@ -39,16 +39,12 @@ def main():
         image, average_angle_offset, average_pixel_offset, average_line_distance)
     pixel_image = pixel_image_and_coordinates[0]
     draw_points_on_image(image_with_markings, pixel_image_and_coordinates[1])
-    # filepath = "C:\\Users\\Proto\\OneDrive\\Pictures\\pixel_cat\\"\
-    #     "pixel_cat_lines_and_pixels.png"
-    # write_image_to_file(image, filepath)
     print_bgr_image(image_with_markings, "Image with markings")
     pixel_image = crop_image(pixel_image)
-    print_bgra_image(pixel_image, "Cropped")
+    #print_bgra_image(pixel_image, "Cropped")
     mask = get_background_mask(pixel_image)
     pixel_image_transparent = make_background_transparent(pixel_image, mask)
-    print_bgra_image(pixel_image_transparent, "trans")
-    #print_bgra_image(pixel_image_transparent, "dunno")
+    #print_bgra_image(pixel_image_transparent, "trans")
     if args.border:
         create_border(pixel_image_transparent)
     else:
