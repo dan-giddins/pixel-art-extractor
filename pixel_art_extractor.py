@@ -129,7 +129,7 @@ def get_background_mask(image):
     mask = numpy.zeros((height+2, width+2), numpy.uint8)
     diff = 10
     diff_array = [diff, diff, diff]
-    cv2.floodFill(numpy.array(image), mask, (0, 0), [
+    cv2.floodFill(numpy.ascontiguousarray(image, dtype=numpy.uint8), mask, (0, 0), [
         0, 0, 0], loDiff=diff_array, upDiff=diff_array)
     return mask
 
