@@ -40,7 +40,7 @@ def main():
     pixel_image = pixel_image_and_coordinates[0]
     draw_points_on_image(image_with_markings, pixel_image_and_coordinates[1])
     print_bgr_image(image_with_markings, "Image with markings")
-    pixel_image = crop_image(pixel_image)
+    pixel_image = crop_image(pixel_image, pixel_width)
     #print_bgra_image(pixel_image, "Cropped")
     mask = get_background_mask(pixel_image)
     pixel_image_transparent = make_background_transparent(pixel_image, mask)
@@ -134,16 +134,19 @@ def get_background_mask(image):
     return mask
 
 
-def crop_image(image):
+def crop_image(image, pixel_width):
     """Crop an image to 1 pixel more that image, assuming the image background is white."""
     height, width = get_shape(image)
     top = height
     bottom = 0
     left = width
     right = 0
+    found_non_white = False
     for y_pos in range(height):
         for x_pos in range(width):
             if not numpy.array_equal(image[y_pos, x_pos], [255, 255, 255]):
+                # Found a non-white pixel
+                found_non_white = True
                 if x_pos < left:
                     left = x_pos
                 if x_pos > right:
@@ -152,6 +155,9 @@ def crop_image(image):
                     top = y_pos
                 if y_pos > bottom:
                     bottom = y_pos
+    if found_non_white is False:
+        print("No non-white pixels found based on the given pixel width of " + str(pixel_width) + "! Try entering a diffrent pixel width...")
+        exit()
     crop_h = bottom - top + 3
     crop_w = right - left + 3
     pixel_image_crop = numpy.full((crop_h, crop_w, 3), [255, 255, 255])
