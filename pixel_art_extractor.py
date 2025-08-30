@@ -51,9 +51,9 @@ def main():
         pixel_image_transparent = crop_down(pixel_image_transparent)
     if args.scale and args.scale > 1:
         pixel_image_transparent = scale_up(pixel_image_transparent, args.scale)
-    filepath = "pixel_art.png"
+    filepath = "pixel_art_output.png"
     write_image_to_file(pixel_image_transparent, filepath)
-    print_bgra_image(pixel_image_transparent, "Final pixelised image (saved to pixel_art.png)")
+    print_bgra_image(pixel_image_transparent, "Final pixelised image (saved to pixel_art_output.png)")
     pyplot.show()
 
 
