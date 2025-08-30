@@ -6,29 +6,31 @@ A python script to extract the original pixel art from a PNG image, even if the 
 
 ```
 positional arguments:
-  source_image          Filepath to the source image.
+  source_image          filepath to the source image
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
-  -b, --border          Add a white border to the image.
+  -b, --border          add a white border to the image
   -s SCALE, --scale SCALE
-                        Value to scale the final image up by.
+                        value to scale the final image up by
+  -w WIDTH, --width WIDTH
+                        approximate width in actual source image pixels (you may use decimals) of a     
+                        'pixel' of your desired target image
 ```
 ## Installation and Usage
 
 1. Install [Python 3](https://www.python.org/downloads/)
     * Make sure to add Python to PATH during installation
-3. Install all the required packages using PIP
-    * `pip install opencv-python`
-    * `pip install argparse`
-    * `pip install numpy`
-    * `pip install matplotlib`
+1. Install all the required packages using PIP
+    * `pip install opencv-python argparse numpy matplotlib`
 5. Download [pixel_art_extractor.py](https://raw.githubusercontent.com/dan-giddins/pixel-art-extractor/master/pixel_art_extractor.py) to a new folder
 6. Open a terminal in the folder you have downloaded pixel_art_extractor.py to
     * In Windows, you can do this by opening file explorer and shift-right-clicking on the new folder you have just created, then clicking 'Open in Powershell'
-7. In the command window, type `python pixel_art_extractor.py -h` and press enter to check everything is working
+7. In the command window, type the following command and press enter to check everything is working
+    * `python pixel_art_extractor.py -h`
     * You should see a few lines of help text
-8. Enter `python pixel_art_extractor.py` followed by a space and then the file path of the PNG source image
+8. Enter the following command followed by a space and then the file path of the PNG source image
+    * `python pixel_art_extractor.py`
     * For example:
         * `python pixel_art_extractor.py C:\Path\To\File\picture.png`
     * If you have spaces in the filepath, you will need to add single quotes to the filepath argument:
@@ -40,6 +42,7 @@ optional arguments:
 10. You can also use any combination of the following optional parameters:
     * `python pixel_art_extractor.py -b C:\Path\To\File\picture.png` if you would like the output to have a 1px wide border
     * `python pixel_art_extractor.py -s 5 C:\Path\To\File\picture.png` if you would like the output to be scaled up by a factor of 5 (this works for any positive integer)
+    * `python pixel_art_extractor.py -w 10 C:\Path\To\File\picture.png` if you would like to automatically pass a pixel width of 10 instead of being promted for it each time
 
 ## Example
 
