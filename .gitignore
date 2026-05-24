@@ -1,4 +1,6 @@
 /.vscode/
+__pycache__/
+*.pyc
 
 pixel_art.png
 pixel_art_output.png
