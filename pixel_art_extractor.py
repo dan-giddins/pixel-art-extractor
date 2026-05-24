@@ -32,10 +32,13 @@ def main():
     if image is None:
         parser.error("Could not read source image '" + args.source_image + "'. Check that the file exists and is a valid image.")
     print_bgr_image(image, "Source image")
+    # Detect edges using the Canny algorithm; thresholds 20/50 work well for pixel art grid lines
     edges = cv2.Canny(image, 20, 50, L2gradient=True)
+    # Use Hough transform to find the straight grid lines in the edge map
     lines = get_lines(edges)
     image_with_markings = copy.deepcopy(image)
     draw_lines(lines, image_with_markings)
+    # Calculate how much the grid is rotated away from perfectly axis-aligned
     average_angle_offset = get_angle_offset(lines)
     if (args.width is None):
         while True:
@@ -50,16 +53,21 @@ def main():
             break
     else:
         pixel_width = args.width
+    # Derive the true pixel grid spacing (in source image pixels) from the detected lines
     average_line_distance = get_average_line_distance(lines, pixel_width)
+    # Determine where the grid origin sits within the image so sampling lands in pixel centres
     average_pixel_offset = get_average_pixel_offset(
         lines, average_line_distance)
+    # Sample one colour per logical pixel and record which source pixels were used
     pixel_image_and_coordinates = get_pixel_image_and_coordinates(
         image, average_angle_offset, average_pixel_offset, average_line_distance)
     pixel_image = pixel_image_and_coordinates[0]
     draw_points_on_image(image_with_markings, pixel_image_and_coordinates[1])
     print_bgr_image(image_with_markings, "Image with markings")
+    # Trim excess white space down to 1-pixel padding on each side
     pixel_image = crop_image(pixel_image, pixel_width)
     #print_bgra_image(pixel_image, "Cropped")
+    # Flood-fill from (0,0) to identify background pixels
     mask = get_background_mask(pixel_image)
     pixel_image_transparent = make_background_transparent(pixel_image, mask)
     #print_bgra_image(pixel_image_transparent, "trans")
@@ -80,6 +88,7 @@ def crop_down(image):
     shape = image.shape
     height = shape[0]
     width = shape[1]
+    # Remove the 1-pixel transparent border added by make_background_transparent
     cropped_height = height - 2
     cropped_width = width - 2
     cropped_image = numpy.full(
@@ -144,7 +153,9 @@ def make_background_transparent(image, mask):
 def get_background_mask(image):
     """Flood an image to create background mask."""
     height, width = get_shape(image)
+    # floodFill requires a mask that is 2 pixels larger in each dimension
     mask = numpy.zeros((height+2, width+2), numpy.uint8)
+    # Allow up to ±10 per channel when deciding whether a neighbour belongs to the background
     diff = 10
     diff_array = [diff, diff, diff]
     cv2.floodFill(numpy.ascontiguousarray(image, dtype=numpy.uint8), mask, (0, 0), [
@@ -176,6 +187,8 @@ def crop_image(image, pixel_width):
     if found_non_white is False:
         print("No non-white pixels found based on the given pixel width of " + str(pixel_width) + "! Try entering a different pixel width...")
         exit()
+    # Add 1-pixel padding on each side (+2) plus an extra row/column (+1) so
+    # make_background_transparent can index with y_pos+1 / x_pos+1 without going out of bounds
     crop_h = bottom - top + 3
     crop_w = right - left + 3
     pixel_image_crop = numpy.full((crop_h, crop_w, 3), [255, 255, 255])
@@ -208,6 +221,8 @@ def get_pixel_image_and_coordinates(
     pixel_offset_y = (
         average_pixel_offset[1] / average_line_distance) - pixel_height/2
     pixel_coordinates = []
+    # Sample the centre of each logical pixel (+0.5) after applying the grid offset,
+    # rotate by the detected angle, then scale back to source image coordinates
     # 0.5 as we want center of 'pixel' from original image
     for pixel_y in range(pixel_height):
         for pixel_x in range(pixel_width):
@@ -230,6 +245,8 @@ def get_average_pixel_offset(lines, average_line_distance):
     offset_sum_x = 0
     offset_sum_y = 0
     for line in lines:
+        # Lines with theta < π are roughly horizontal (y-axis offset);
+        # the remainder are roughly vertical (x-axis offset)
         if line[1] < numpy.pi:
             offset_sum_y += line[0] % average_line_distance
         else:
@@ -242,7 +259,10 @@ def get_average_pixel_offset(lines, average_line_distance):
 def get_average_line_distance(lines, pixel_width):
     """Get an average distance between all the lines that are 1 'pixel' apart."""
     line_distances = get_line_distances(lines)
+    # Count how often each integer distance appears across all line pairs
     sorted_line_distances = Counter(line_distances).most_common()
+    # Keep only distances that are within 20% of the given pixel_width and
+    # appear in more than half the lines (indicating a true grid spacing)
     def filter_lambda(line_distances):
         return line_distances[0] > (pixel_width * 0.8) and line_distances[0] < (pixel_width * 1.2) and line_distances[1] > len(lines)/2
     valid_lengths = list(filter(filter_lambda, sorted_line_distances))
@@ -251,6 +271,7 @@ def get_average_line_distance(lines, pixel_width):
         exit()
     length_sum = 0
     count = 0
+    # Compute a frequency-weighted average to get the best estimate of true grid spacing
     for length in valid_lengths:
         length_sum += length[0] * length[1]
         count += length[1]
@@ -271,6 +292,8 @@ def get_angle_offset(lines):
     """Get the average angle offset (rad) of the lines."""
     angle_sum = 0
     for line in lines:
+        # Normalise the angle to the range [-π/4, π/4] so that near-horizontal
+        # and near-vertical lines all contribute the same small rotation offset
         angle_sum += ((line[1] + (numpy.pi/4)) % (numpy.pi/2)) - (numpy.pi/4)
     avg_angle = angle_sum / len(lines)
     return avg_angle
@@ -278,10 +301,12 @@ def get_angle_offset(lines):
 
 def get_lines(edges):
     """Detect all lines in the image."""
+    # Sub-pixel rho (0.5 px) and fine angular resolution (π/180/64 ≈ 0.014°) for accuracy
     lines = cv2.HoughLines(edges, 1/2, numpy.pi/(180*2**6), 100)
     if lines is None:
         print("No lines detected in the image! Try using a different source image.")
         exit()
+    # Flatten from shape (N, 1, 2) to (N, 2) for convenient iteration
     lines = lines.reshape(-1, 2).tolist()
     return lines
 
@@ -297,6 +322,8 @@ def print_bgra_image(image, title):
     """Print a BGRA image."""
     temp_image = copy.deepcopy(image)
     split = cv2.split(temp_image)
+    # Swap the blue (index 0) and red (index 2) channels to convert BGR→RGB
+    # while keeping the alpha channel (index 3) in place for matplotlib
     temp_image[:, :, 0] = split[2]
     temp_image[:, :, 2] = split[0]
     print_image(temp_image, title)
@@ -327,6 +354,7 @@ def rotate_point(point, angle, origin=(0, 0)):
 
 def find_border(image, x_pos, y_pos, border_pixels, checked_pixels):
     """Recursively check neighbouring pixels to see if current pixel is a border pixel."""
+    # Use an explicit stack to avoid Python's recursion depth limit on large images
     stack = [(image, x_pos, y_pos, border_pixels, checked_pixels)]
     while len(stack) > 0:
         arguments = stack.pop()
@@ -444,8 +472,10 @@ def draw_lines(lines, image):
         theta = line[1]
         cos = numpy.cos(theta)
         sin = numpy.sin(theta)
+        # (x_0, y_0) is the point on the line closest to the origin
         x_0 = cos*rho
         y_0 = sin*rho
+        # Extend 10000 pixels in each direction along the line to ensure it crosses the image
         x_1 = int(x_0 + 10000*(-sin))
         y_1 = int(y_0 + 10000*(cos))
         x_2 = int(x_0 - 10000*(-sin))
