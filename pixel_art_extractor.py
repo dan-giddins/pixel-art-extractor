@@ -179,7 +179,6 @@ def get_shape(image):
 def get_pixel_image_and_coordinates(
         image, average_angle_offset, average_pixel_offset, average_line_distance):
     """Get the new image and the coordinates of the pixels in relation to the orginal image"""
-    pixel_coordinates = []
     pixel_width = 1000
     pixel_height = 1000
     pixel_image = numpy.full((pixel_width, pixel_height, 3), [255, 255, 255])
@@ -190,6 +189,7 @@ def get_pixel_image_and_coordinates(
         average_pixel_offset[0] / average_line_distance) - pixel_width/2
     pixel_offset_y = (
         average_pixel_offset[1] / average_line_distance) - pixel_height/2
+    pixel_coordinates = []
     # 0.5 as we want center of 'pixel' from original image
     for pixel_y in range(pixel_height):
         for pixel_x in range(pixel_width):
