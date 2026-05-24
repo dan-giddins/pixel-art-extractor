@@ -163,7 +163,8 @@ def crop_image(image, pixel_width):
     pixel_image_crop = numpy.full((crop_h, crop_w, 3), [255, 255, 255])
     for y_pos in range(crop_h):
         for x_pos in range(crop_w):
-            pixel_image_crop[y_pos, x_pos] = image[y_pos + top - 1, x_pos + left - 1]
+            if (y_pos + top - 1 < height and x_pos + left - 1 < width):
+                pixel_image_crop[y_pos, x_pos] = image[y_pos + top - 1, x_pos + left - 1]
     return pixel_image_crop
 
 
@@ -178,17 +179,17 @@ def get_shape(image):
 def get_pixel_image_and_coordinates(
         image, average_angle_offset, average_pixel_offset, average_line_distance):
     """Get the new image and the coordinates of the pixels in relation to the orginal image"""
-    pixel_coordinates = []
-    pixel_width = 200
-    pixel_height = 200
-    pixel_image = numpy.full((pixel_width, pixel_height, 3), [255, 255, 255])
     height, width = get_shape(image)
+    pixel_height = height
+    pixel_width = width
+    pixel_image = numpy.full((pixel_height, pixel_width, 3), [255, 255, 255])
     cos = numpy.cos(average_angle_offset)
     sin = numpy.sin(average_angle_offset)
     pixel_offset_x = (
         average_pixel_offset[0] / average_line_distance) - pixel_width/2
     pixel_offset_y = (
         average_pixel_offset[1] / average_line_distance) - pixel_height/2
+    pixel_coordinates = []
     # 0.5 as we want center of 'pixel' from original image
     for pixel_y in range(pixel_height):
         for pixel_x in range(pixel_width):
