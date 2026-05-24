@@ -156,14 +156,14 @@ def crop_image(image, pixel_width):
                 if y_pos > bottom:
                     bottom = y_pos
     if found_non_white is False:
-        print("No non-white pixels found based on the given pixel width of " + str(pixel_width) + "! Try entering a diffrent pixel width...")
+        print("No non-white pixels found based on the given pixel width of " + str(pixel_width) + "! Try entering a different pixel width...")
         exit()
     crop_h = bottom - top + 3
     crop_w = right - left + 3
     pixel_image_crop = numpy.full((crop_h, crop_w, 3), [255, 255, 255])
     for y_pos in range(crop_h):
         for x_pos in range(crop_w):
-            if (y_pos + top - 1 < height and x_pos + left - 1 < width):
+            if (0 <= y_pos + top - 1 < height and 0 <= x_pos + left - 1 < width):
                 pixel_image_crop[y_pos, x_pos] = image[y_pos + top - 1, x_pos + left - 1]
     return pixel_image_crop
 
@@ -178,7 +178,7 @@ def get_shape(image):
 
 def get_pixel_image_and_coordinates(
         image, average_angle_offset, average_pixel_offset, average_line_distance):
-    """Get the new image and the coordinates of the pixels in relation to the orginal image"""
+    """Get the new image and the coordinates of the pixels in relation to the original image"""
     height, width = get_shape(image)
     pixel_height = height
     pixel_width = width
@@ -229,7 +229,7 @@ def get_average_line_distance(lines, pixel_width):
         return line_distances[0] > (pixel_width * 0.8) and line_distances[0] < (pixel_width * 1.2) and line_distances[1] > len(lines)/2
     valid_lengths = list(filter(filter_lambda, sorted_line_distances))
     if (len(valid_lengths) == 0):
-        print("No pixels found based on the given pixel width of " + str(pixel_width) + "! Try entering a diffrent pixel width...")
+        print("No pixels found based on the given pixel width of " + str(pixel_width) + "! Try entering a different pixel width...")
         exit()
     length_sum = 0
     count = 0
@@ -261,6 +261,9 @@ def get_angle_offset(lines):
 def get_lines(edges):
     """Detect all lines in the image."""
     lines = cv2.HoughLines(edges, 1/2, numpy.pi/(180*2**6), 100)
+    if lines is None:
+        print("No lines detected in the image! Try using a different source image.")
+        exit()
     lines = lines.reshape(-1, 2).tolist()
     return lines
 
