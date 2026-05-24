@@ -21,6 +21,8 @@ def main():
         '-s', '--scale', help="value to scale the final image up by", type=int)
     parser.add_argument(
         '-w', '--width', help="approximate width in actual source image pixels (you may use decimals) of a 'pixel' of your desired target image", type=float)
+    parser.add_argument(
+        '-o', '--output', help="output image filepath (default: pixel_art_output.png)", default="pixel_art_output.png")
     args = parser.parse_args()
     if args.scale is not None and args.scale < 1:
         parser.error("--scale must be a positive integer.")
@@ -28,6 +30,9 @@ def main():
         parser.error("--width must be greater than 0.")
     if not os.path.isfile(args.source_image):
         parser.error("Source image file '" + args.source_image + "' does not exist.")
+    output_dir = os.path.dirname(os.path.abspath(args.output))
+    if output_dir and not os.path.isdir(output_dir):
+        parser.error("Output directory '" + output_dir + "' does not exist.")
     image = cv2.imread(args.source_image)
     if image is None:
         parser.error("Could not read source image '" + args.source_image + "'. Check that the file exists and is a valid image.")
@@ -77,9 +82,9 @@ def main():
         pixel_image_transparent = crop_down(pixel_image_transparent)
     if args.scale and args.scale > 1:
         pixel_image_transparent = scale_up(pixel_image_transparent, args.scale)
-    filepath = "pixel_art_output.png"
+    filepath = args.output
     write_image_to_file(pixel_image_transparent, filepath)
-    print_bgra_image(pixel_image_transparent, "Final pixelised image (saved to pixel_art_output.png)")
+    print_bgra_image(pixel_image_transparent, "Final pixelised image (saved to " + filepath + ")")
     pyplot.show()
 
 
