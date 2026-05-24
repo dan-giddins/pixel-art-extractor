@@ -163,7 +163,8 @@ def crop_image(image, pixel_width):
     pixel_image_crop = numpy.full((crop_h, crop_w, 3), [255, 255, 255])
     for y_pos in range(crop_h):
         for x_pos in range(crop_w):
-            pixel_image_crop[y_pos, x_pos] = image[y_pos + top - 1, x_pos + left - 1]
+            if (y_pos + top - 1 < height and x_pos + left - 1 < width):
+                pixel_image_crop[y_pos, x_pos] = image[y_pos + top - 1, x_pos + left - 1]
     return pixel_image_crop
 
 
