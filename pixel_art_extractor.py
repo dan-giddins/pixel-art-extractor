@@ -82,7 +82,7 @@ def extract_pixel_image(image, pixel_width):
         image, average_angle_offset, average_pixel_offset, average_line_distance)
     draw_points_on_image(image_with_markings, pixel_coordinates)
     print_bgr_image(image_with_markings, "Image with markings")
-    return pixel_image, image_with_markings
+    return pixel_image
 
 
 def post_process_pixel_image(pixel_image, pixel_width, args):
@@ -118,7 +118,7 @@ def main():
     image = load_source_image(parser, args.source_image)
     print_bgr_image(image, "Source image")
     pixel_width = resolve_pixel_width(args)
-    pixel_image, _ = extract_pixel_image(image, pixel_width)
+    pixel_image = extract_pixel_image(image, pixel_width)
     pixel_image_transparent = post_process_pixel_image(pixel_image, pixel_width, args)
     write_and_display_output(pixel_image_transparent, args.output)
 
