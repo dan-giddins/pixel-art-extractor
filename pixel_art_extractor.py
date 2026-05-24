@@ -65,13 +65,19 @@ def resolve_pixel_width(args):
 
 def extract_pixel_image(image, pixel_width):
     """Extract pixel image data and produce a debug marking image."""
+    # Detect edges using the Canny algorithm; thresholds 20/50 work well for pixel art grid lines
     edges = cv2.Canny(image, 20, 50, L2gradient=True)
+    # Use Hough transform to find the straight grid lines in the edge map
     lines = get_lines(edges)
     image_with_markings = copy.deepcopy(image)
     draw_lines(lines, image_with_markings)
+    # Calculate how much the grid is rotated away from perfectly axis-aligned
     average_angle_offset = get_angle_offset(lines)
+    # Derive the true pixel grid spacing (in source image pixels) from the detected lines
     average_line_distance = get_average_line_distance(lines, pixel_width)
+    # Determine where the grid origin sits within the image so sampling lands in pixel centres
     average_pixel_offset = get_average_pixel_offset(lines, average_line_distance)
+    # Sample one colour per logical pixel and record which source pixels were used
     pixel_image, pixel_coordinates = get_pixel_image_and_coordinates(
         image, average_angle_offset, average_pixel_offset, average_line_distance)
     draw_points_on_image(image_with_markings, pixel_coordinates)
@@ -81,9 +87,13 @@ def extract_pixel_image(image, pixel_width):
 
 def post_process_pixel_image(pixel_image, pixel_width, args):
     """Apply final post-processing to pixel image."""
+    # Trim excess white space down to 1-pixel padding on each side
     pixel_image = crop_image(pixel_image, pixel_width)
+    #print_bgra_image(pixel_image, "Cropped")
+    # Flood-fill from (0,0) to identify background pixels
     mask = get_background_mask(pixel_image)
     pixel_image_transparent = make_background_transparent(pixel_image, mask)
+    #print_bgra_image(pixel_image_transparent, "trans")
     if args.border:
         create_border(pixel_image_transparent)
     else:
