@@ -179,10 +179,10 @@ def get_shape(image):
 def get_pixel_image_and_coordinates(
         image, average_angle_offset, average_pixel_offset, average_line_distance):
     """Get the new image and the coordinates of the pixels in relation to the orginal image"""
-    pixel_width = 1000
-    pixel_height = 1000
-    pixel_image = numpy.full((pixel_width, pixel_height, 3), [255, 255, 255])
     height, width = get_shape(image)
+    pixel_width = width
+    pixel_height = height
+    pixel_image = numpy.full((pixel_height, pixel_width, 3), [255, 255, 255])
     cos = numpy.cos(average_angle_offset)
     sin = numpy.sin(average_angle_offset)
     pixel_offset_x = (
