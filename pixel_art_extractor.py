@@ -10,8 +10,8 @@ import numpy
 from matplotlib import pyplot
 
 
-def main():
-    """The main entrypoint for the application."""
+def build_parser():
+    """Build the command line argument parser."""
     parser = argparse.ArgumentParser(
         description="Extract the original pixel art from an image.")
     parser.add_argument("source_image", help="filepath to the source image")
@@ -23,7 +23,11 @@ def main():
         '-w', '--width', help="approximate width in actual source image pixels (you may use decimals) of a 'pixel' of your desired target image", type=float)
     parser.add_argument(
         '-o', '--output', help="output image filepath (default: pixel_art_output.png)", default="pixel_art_output.png")
-    args = parser.parse_args()
+    return parser
+
+
+def validate_args(parser, args):
+    """Validate parsed command line arguments."""
     if args.scale is not None and args.scale < 1:
         parser.error("--scale must be a positive integer.")
     if args.width is not None and args.width <= 0:
@@ -33,59 +37,80 @@ def main():
     output_dir = os.path.dirname(os.path.abspath(args.output))
     if output_dir and not os.path.isdir(output_dir):
         parser.error("Output directory '" + output_dir + "' does not exist.")
-    image = cv2.imread(args.source_image)
+
+
+def load_source_image(parser, source_image):
+    """Load a source image from disk."""
+    image = cv2.imread(source_image)
     if image is None:
-        parser.error("Could not read source image '" + args.source_image + "'. Check that the file exists and is a valid image.")
-    print_bgr_image(image, "Source image")
-    # Detect edges using the Canny algorithm; thresholds 20/50 work well for pixel art grid lines
+        parser.error("Could not read source image '" + source_image + "'. Check that the file exists and is a valid image.")
+    return image
+
+
+def resolve_pixel_width(args):
+    """Resolve pixel width from args or interactive prompt."""
+    if args.width is not None:
+        return args.width
+    while True:
+        try:
+            pixel_width = float(input("Please enter the approximate width in actual source image pixels (you may use decimals) of a 'pixel' of your desired target image (you can use the displayed 'source image' popup to help you determine this width): "))
+        except ValueError:
+            print("Invalid pixel width. Please enter a positive number.")
+            continue
+        if pixel_width <= 0:
+            print("Invalid pixel width. Please enter a positive number.")
+            continue
+        return pixel_width
+
+
+def extract_pixel_image(image, pixel_width):
+    """Extract pixel image data and produce a debug marking image."""
     edges = cv2.Canny(image, 20, 50, L2gradient=True)
-    # Use Hough transform to find the straight grid lines in the edge map
     lines = get_lines(edges)
     image_with_markings = copy.deepcopy(image)
     draw_lines(lines, image_with_markings)
-    # Calculate how much the grid is rotated away from perfectly axis-aligned
     average_angle_offset = get_angle_offset(lines)
-    if (args.width is None):
-        while True:
-            try:
-                pixel_width = float(input("Please enter the approximate width in actual source image pixels (you may use decimals) of a 'pixel' of your desired target image (you can use the displayed 'source image' popup to help you determine this width): "))
-            except ValueError:
-                print("Invalid pixel width. Please enter a positive number.")
-                continue
-            if pixel_width <= 0:
-                print("Invalid pixel width. Please enter a positive number.")
-                continue
-            break
-    else:
-        pixel_width = args.width
-    # Derive the true pixel grid spacing (in source image pixels) from the detected lines
     average_line_distance = get_average_line_distance(lines, pixel_width)
-    # Determine where the grid origin sits within the image so sampling lands in pixel centres
-    average_pixel_offset = get_average_pixel_offset(
-        lines, average_line_distance)
-    # Sample one colour per logical pixel and record which source pixels were used
-    pixel_image_and_coordinates = get_pixel_image_and_coordinates(
+    average_pixel_offset = get_average_pixel_offset(lines, average_line_distance)
+    pixel_image, pixel_coordinates = get_pixel_image_and_coordinates(
         image, average_angle_offset, average_pixel_offset, average_line_distance)
-    pixel_image = pixel_image_and_coordinates[0]
-    draw_points_on_image(image_with_markings, pixel_image_and_coordinates[1])
+    draw_points_on_image(image_with_markings, pixel_coordinates)
     print_bgr_image(image_with_markings, "Image with markings")
-    # Trim excess white space down to 1-pixel padding on each side
+    return pixel_image, image_with_markings
+
+
+def post_process_pixel_image(pixel_image, pixel_width, args):
+    """Apply final post-processing to pixel image."""
     pixel_image = crop_image(pixel_image, pixel_width)
-    #print_bgra_image(pixel_image, "Cropped")
-    # Flood-fill from (0,0) to identify background pixels
     mask = get_background_mask(pixel_image)
     pixel_image_transparent = make_background_transparent(pixel_image, mask)
-    #print_bgra_image(pixel_image_transparent, "trans")
     if args.border:
         create_border(pixel_image_transparent)
     else:
         pixel_image_transparent = crop_down(pixel_image_transparent)
     if args.scale and args.scale > 1:
         pixel_image_transparent = scale_up(pixel_image_transparent, args.scale)
-    filepath = args.output
-    write_image_to_file(pixel_image_transparent, filepath)
-    print_bgra_image(pixel_image_transparent, "Final pixelised image (saved to " + filepath + ")")
+    return pixel_image_transparent
+
+
+def write_and_display_output(image, filepath):
+    """Write final image output and display it."""
+    write_image_to_file(image, filepath)
+    print_bgra_image(image, "Final pixelised image (saved to " + filepath + ")")
     pyplot.show()
+
+
+def main():
+    """The main entrypoint for the application."""
+    parser = build_parser()
+    args = parser.parse_args()
+    validate_args(parser, args)
+    image = load_source_image(parser, args.source_image)
+    print_bgr_image(image, "Source image")
+    pixel_width = resolve_pixel_width(args)
+    pixel_image, _ = extract_pixel_image(image, pixel_width)
+    pixel_image_transparent = post_process_pixel_image(pixel_image, pixel_width, args)
+    write_and_display_output(pixel_image_transparent, args.output)
 
 
 def crop_down(image):
