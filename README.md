@@ -43,6 +43,8 @@ options:
     * `python pixel_art_extractor.py -b C:\Path\To\File\picture.png` if you would like the output to have a 1px wide border
     * `python pixel_art_extractor.py -s 5 C:\Path\To\File\picture.png` if you would like the output to be scaled up by a factor of 5 (this works for any positive integer)
     * `python pixel_art_extractor.py -w 10 C:\Path\To\File\picture.png` if you would like to automatically pass a pixel width of 10 instead of being promted for it each time
+    * `--scale` and `--width` must be positive values
+    * if a source image cannot be read, the script now exits with a clear CLI error
 
 ## Example
 

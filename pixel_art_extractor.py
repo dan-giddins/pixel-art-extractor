@@ -2,6 +2,7 @@
 import argparse
 import copy
 import math
+import os
 from collections import Counter
 
 import cv2
@@ -21,7 +22,15 @@ def main():
     parser.add_argument(
         '-w', '--width', help="approximate width in actual source image pixels (you may use decimals) of a 'pixel' of your desired target image", type=float)
     args = parser.parse_args()
+    if args.scale is not None and args.scale < 1:
+        parser.error("--scale must be a positive integer.")
+    if args.width is not None and args.width <= 0:
+        parser.error("--width must be greater than 0.")
+    if not os.path.isfile(args.source_image):
+        parser.error("Source image file '" + args.source_image + "' does not exist.")
     image = cv2.imread(args.source_image)
+    if image is None:
+        parser.error("Could not read source image '" + args.source_image + "'. Check that the file exists and is a valid image.")
     print_bgr_image(image, "Source image")
     edges = cv2.Canny(image, 20, 50, L2gradient=True)
     lines = get_lines(edges)
@@ -29,7 +38,16 @@ def main():
     draw_lines(lines, image_with_markings)
     average_angle_offset = get_angle_offset(lines)
     if (args.width is None):
-        pixel_width = float(input("Please enter the approximate width in actual source image pixels (you may use decimals) of a 'pixel' of your desired target image (you can use the displayed 'source image' popup to help you determine this width): "))
+        while True:
+            try:
+                pixel_width = float(input("Please enter the approximate width in actual source image pixels (you may use decimals) of a 'pixel' of your desired target image (you can use the displayed 'source image' popup to help you determine this width): "))
+            except ValueError:
+                print("Invalid pixel width. Please enter a positive number.")
+                continue
+            if pixel_width <= 0:
+                print("Invalid pixel width. Please enter a positive number.")
+                continue
+            break
     else:
         pixel_width = args.width
     average_line_distance = get_average_line_distance(lines, pixel_width)
